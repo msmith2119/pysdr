@@ -70,20 +70,23 @@ class AnalogFilter:
     xbuf = 0
     ybuf = 0
     window_type = WindowType.NONE
+    window = np.ones(1)
     overlap = 200
     filt = np.zeros(1)
     prevFrame = np.zeros(1)
-    def __init__(self,name, a, b):
+    def __init__(self,name,fs, a, b):
         self.name = name
+        self.fs = fs
         self.a = a
         self.b = b
         self.xbuf = SampleBuffer(a.size)
         self.ybuf = SampleBuffer(b.size)
-
+        self.window = np.ones(self.a.size)
 
 
     def setWindowType(self,wtype):
         self.window_type = wtype
+        self.window = np.hanning(self.a.size)
 
     def getEnvelope(self,m,n):
 
@@ -147,8 +150,8 @@ class AnalogFilter:
         M = self.overlap
 
         env = self.getEnvelope(frame_size + M, M)
-        if self.filt.size == 1 :
-            self.filt = fft(self.a, frame_size+M)
+        if self.a.size > 1 :
+            self.filt = fft(self.a*self.window, frame_size+M)
         signal_out = Signal(self.name + "(" + signal_in.name + ")", signal_in.size, signal_in.dt)
         num_frames = int(signal_in.size/frame_size)
 
@@ -171,7 +174,7 @@ class AnalogFilter:
         for i in range(self.a.size-1,-1,-1):
             if self.a[i] == 0:
                 continue
-            sx += self.a[i] * self.xbuf.get(i)
+            sx += self.a[i]*self.window[i] * self.xbuf.get(i)
 
                    # for i in range(1,self.b.size):
         for i in range(self.b.size-1,-1,-1):
@@ -181,6 +184,38 @@ class AnalogFilter:
         y = (sx - sy) / self.b[0]
         self.ybuf.set(0, y)
         return y
+
+    def plotFFT(self,frame_size,stick=False):
+
+        N = frame_size + self.overlap
+        Ny = int(N/2)
+        if self.a.size > 1:
+            self.filt = fft(self.a * self.window, N)
+
+        # Compute the FFT of the impulse response
+        #fft_values = np.fft.fft(impulse_response)
+        fft_values = self.filt
+        # Frequency axis (including negative frequencies)
+        freq = np.fft.fftfreq(N, d=1 / self.fs)
+
+        # Convert FFT values to magnitude and then to dB scale
+        magnitude = np.abs(fft_values)
+        magnitude_db = 20 * np.log10(magnitude + 1e-10)  # Added small constant to avoid log(0)
+        xvals = np.ones(N)
+        xvals[:Ny] = freq[Ny:]
+        xvals[Ny:] = freq[:Ny]
+        yvals = np.ones(N)
+        yvals[:Ny] = magnitude_db[Ny:]
+        yvals[Ny:] = magnitude_db[:Ny]
+
+        # Plot the frequency response
+        plt.figure(figsize=(10, 6))
+        plt.plot(xvals, yvals)
+        plt.title('Frequency Response of the Impulse Response')
+        plt.xlabel('Frequency (Hz)')
+        plt.ylabel('Magnitude (dB)')
+        plt.grid(True)
+        plt.xlim([-self.fs / 2, self.fs / 2])  # Limiting x-axis to show negative and positive frequencies
 
     def plot(self,df_in,stick=False):
 
@@ -211,7 +246,14 @@ class AnalogFilter:
         plt.ylabel("dB")
 
 
+    def impulse(self):
+        n = self.a.size
+        s = Signal("impulse-" + self.name, n , 1 / self.fs)
+        for i in range(n ):
+            s.x[i] = i / self.fs
+            s.y[i] = self.a[i]*self.window[i]
 
+        return s
 
 
 

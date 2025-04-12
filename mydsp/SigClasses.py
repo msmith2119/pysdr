@@ -21,6 +21,7 @@ class Signal:
     size = 0
     fftdone = False
 
+
     def __init__(self, name, size, dt):
         self.name = name
 
@@ -28,6 +29,18 @@ class Signal:
         self.y = np.zeros(size)
         self.x = np.zeros(size)
         self.dt = dt
+        self.summary_text = f"Signal  size={size}"
+
+    def summary(self):
+        return self.summary_text
+
+@staticmethod
+def description(src_type):
+    if src_type == "sine":
+        return "signal sine sinewave ampl=<amplitude> f=<frequency> fs=<sampling frequency> xl=<start time> xh=<stop time>"
+    elif src_type == "wav":
+        return "signal wav audio_in path=<filepath to wav file>"
+    return "no description"
 
     def add(self, other):
         s = Signal(self.name + "+" + other.name, self.size, self.dt)

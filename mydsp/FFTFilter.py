@@ -8,17 +8,20 @@ class FFTFilter(AnalogFilter):
 
     def __init__(self,name, fs, fc,N):
 
-        m = int(N*fc/fs)
-        self.size = m
+
+        self.size = 0
         a =  np.ones(1)
         b =  np.ones(1)
         self.fc = fc
-        self.fs = fs
+
         self.n = 0
-        super().__init__(name,a,b)
-        self.filt = create_brick(N,m)
+        super().__init__(name,fs,a,b)
 
+        freqs = np.fft.fftfreq(N, d=1 / fs)  # Frequencies for each bin
+        self.filt = np.zeros(N)  # Start with all-stop
 
+        # Pass everything with |f| <= fc
+        self.filt[np.abs(freqs) <= fc] = 1.0
 
     def impulse(self):
 

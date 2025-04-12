@@ -60,7 +60,10 @@ def create_brick(N,m):
     z = np.ones(N)
     z[m:N-m] = 0
     return z
-
+def create_notch(N,m,b):
+    z = np.ones(N)
+    z[m-b:m+b] = 0
+    return z
 def plot_array(w):
     N = len(w)  # Length of the array
     plt.figure(figsize=(8, 4))  # Set figure size
