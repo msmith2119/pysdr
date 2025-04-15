@@ -20,7 +20,7 @@ class Signal:
     dt = 0
     size = 0
     fftdone = False
-
+    filepath = 0
 
     def __init__(self, name, size, dt):
         self.name = name
@@ -34,13 +34,7 @@ class Signal:
     def summary(self):
         return self.summary_text
 
-@staticmethod
-def description(src_type):
-    if src_type == "sine":
-        return "signal sine sinewave ampl=<amplitude> f=<frequency> fs=<sampling frequency> xl=<start time> xh=<stop time>"
-    elif src_type == "wav":
-        return "signal wav audio_in path=<filepath to wav file>"
-    return "no description"
+
 
     def add(self, other):
         s = Signal(self.name + "+" + other.name, self.size, self.dt)
@@ -204,6 +198,13 @@ def description(src_type):
         # np.copyto(s.y,y[0:,i])
         return signals
 
+@staticmethod
+def description(src_type):
+    if src_type == "sine":
+        return "signal sine sinewave ampl=<amplitude> f=<frequency> fs=<sampling frequency> xl=<start time> xh=<stop time>"
+    elif src_type == "wav":
+        return "signal wav audio_in path=<filepath to wav file>"
+    return "no description"
 
 class PlaySignals:
     @staticmethod

@@ -5,17 +5,16 @@ class SincLPF(AnalogFilter):
     fc = 0
     n = 0
 
-    def __init__(self,name, fs, fc, n):
+    def __init__(self,name,fs, fc, n):
 
         m = 2 * n + 1
         self.size = m
         a = np.zeros(m)
         b = np.zeros(1)
         self.fc = fc
-        self.fs = fs
         self.n = n
-        super().__init__(name,a,b)
-        self.window = np.ones(m)
+        super().__init__(name,fs,a,b)
+
         self.calc()
 
     def calc(self):
@@ -32,11 +31,3 @@ class SincLPF(AnalogFilter):
 
         self.b[0] = 1
 
-    def impulse(self):
-
-        s = Signal("impulse-" + self.name, 2 * self.n + 1, 1 / self.fs)
-        for i in range(2 * self.n + 1):
-            s.x[i] = i / self.fs
-            s.y[i] = self.a[i]
-
-        return s
