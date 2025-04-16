@@ -243,6 +243,15 @@ class DSLContext:
         print("  help                        - Show this help message")
         print("  exit / quit                 - Exit the REPL")
 
+
+    def execute_command(self,line):
+        parts = line.split()
+        cmd, args = parts[0], parts[1:]
+        if cmd in self.commands:
+            self.commands[cmd](args)
+        else:
+            print(f"Unknown command: {cmd}. Type 'help' for a list of commands.")
+
     def run(self):
         print("Custom Filter DSL REPL. Type 'help' for commands. Type 'exit' to quit.")
         while True:
@@ -253,13 +262,8 @@ class DSLContext:
                 if line in ('exit', 'quit'):
                     print("Goodbye.")
                     break
+                self.execute_command(line)
 
-                parts = line.split()
-                cmd, args = parts[0], parts[1:]
-                if cmd in self.commands:
-                    self.commands[cmd](args)
-                else:
-                    print(f"Unknown command: {cmd}. Type 'help' for a list of commands.")
             except KeyboardInterrupt:
                 print("\n(Use 'exit' to quit)")
             except Exception as e:
