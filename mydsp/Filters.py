@@ -69,11 +69,12 @@ class AnalogFilter:
     size= 0
     xbuf = 0
     ybuf = 0
-    window_type = WindowType.NONE
-    window = np.ones(1)
     overlap = 200
     filt = np.zeros(1)
     prevFrame = np.zeros(1)
+    prevResult = np.zeros(1)
+    envelope = np.zeros(1)
+
     def __init__(self,name,fs, a, b):
         self.name = name
         self.fs = fs
@@ -81,12 +82,11 @@ class AnalogFilter:
         self.b = b
         self.xbuf = SampleBuffer(a.size)
         self.ybuf = SampleBuffer(b.size)
-        self.window = np.ones(self.a.size)
 
 
-    def setWindowType(self,wtype):
-        self.window_type = wtype
-        self.window = np.hanning(self.a.size)
+
+
+
 
     def getEnvelope(self,m,n):
 
@@ -127,6 +127,9 @@ class AnalogFilter:
         self.prevFrame = frame
 
         return y
+
+
+
     def fft_convolution(self,yin):
 
         zo = fft(yin)
@@ -144,14 +147,17 @@ class AnalogFilter:
 
         return y
 
+
     def processConv(self,signal_in,frame_size):
+
+        self.overlap = int(0.2*frame_size)
         if self.prevFrame.size == 1:
             self.prevFrame = np.zeros(frame_size)
         M = self.overlap
 
         env = self.getEnvelope(frame_size + M, M)
         if self.a.size > 1 :
-            self.filt = fft(self.a*self.window, frame_size+M)
+            self.filt = fft(self.a, frame_size+M)
         signal_out = Signal(self.name + "(" + signal_in.name + ")", signal_in.size, signal_in.dt)
         num_frames = int(signal_in.size/frame_size)
 
@@ -174,7 +180,7 @@ class AnalogFilter:
         for i in range(self.a.size-1,-1,-1):
             if self.a[i] == 0:
                 continue
-            sx += self.a[i]*self.window[i] * self.xbuf.get(i)
+            sx += self.a[i] * self.xbuf.get(i)
 
                    # for i in range(1,self.b.size):
         for i in range(self.b.size-1,-1,-1):
@@ -185,12 +191,15 @@ class AnalogFilter:
         self.ybuf.set(0, y)
         return y
 
+
+
     def plotFFT(self,frame_size,stick=False):
 
+        self.overlap = int(0.2*frame_size)
         N = frame_size + self.overlap
         Ny = int(N/2)
         if self.a.size > 1:
-            self.filt = fft(self.a * self.window, N)
+            self.filt = fft(self.a , N)
 
         # Compute the FFT of the impulse response
         #fft_values = np.fft.fft(impulse_response)
@@ -217,33 +226,6 @@ class AnalogFilter:
         plt.grid(True)
         plt.xlim([-self.fs / 2, self.fs / 2])  # Limiting x-axis to show negative and positive frequencies
 
-    def plot(self,df_in,stick=False):
-
-        nsamples = int(self.fs/df_in);
-        M = nsamples/2
-        fnyquist = self.fs/2;
-        magz = np.zeros(nsamples)
-        ph = np.zeros(nsamples)
-        freq = np.zeros(nsamples)
-        for i in range(0,nsamples):
-            phi = 2*math.pi*(i-M)/nsamples;
-            z = complex(math.cos(phi),-math.sin(phi))
-            f = polyval(z,self.a)/polyval(z,self.b)
-            magz[i] = abs(f)
-            ph[i] = cmath.phase(f)
-            freq[i] = -fnyquist + df_in*i
-
-        xvals = freq
-
-        yvals = (lambda x: 10.0 * np.log10(np.clip(x, 1e-10, None)))(magz)
-
-        if stick:
-            plt.stem(xvals, yvals, use_line_collection=True)
-        else:
-            plt.plot(xvals, yvals)
-        plt.grid(True)
-        plt.xlabel("Hz")
-        plt.ylabel("dB")
 
 
     def impulse(self):
@@ -251,7 +233,7 @@ class AnalogFilter:
         s = Signal("impulse-" + self.name, n , 1 / self.fs)
         for i in range(n ):
             s.x[i] = i / self.fs
-            s.y[i] = self.a[i]*self.window[i]
+            s.y[i] = self.a[i]
 
         return s
 
