@@ -2,23 +2,24 @@
 
 from .Filters import *
 
-class FFTFilter(AnalogFilter):
+class FFTLPFilter(AnalogFilter):
     fc = 0
     n = 0
 
-    def __init__(self,name, fs, fc,N):
+    def __init__(self,name, fs, fc,frame_size):
 
 
         self.size = 0
         a =  np.ones(1)
         b =  np.ones(1)
         self.fc = fc
-
         self.n = 0
+        self.frame_size = frame_size
+        self.overlap = int(self.percentOL*self.frame_size)
         super().__init__(name,fs,a,b)
-
-        freqs = np.fft.fftfreq(N, d=1 / fs)  # Frequencies for each bin
-        self.filt = np.zeros(N)  # Start with all-stop
+        buffer_size =  self.frame_size + self.overlap
+        freqs = np.fft.fftfreq(buffer_size, d=1 / fs)  # Frequencies for each bin
+        self.filt = np.zeros(buffer_size)  # Start with all-stop
 
         # Pass everything with |f| <= fc
         self.filt[np.abs(freqs) <= fc] = 1.0

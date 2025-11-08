@@ -1,11 +1,11 @@
 
 from .Filters import *
 
-class SincLPF(AnalogFilter):
+class SincLPFilter(AnalogFilter):
     fc = 0
     n = 0
-
-    def __init__(self,name,fs, fc, n):
+    description = "Sinc LP Filter with params fs=sampling freq fc=cuttoff freq, n=taps frame_size=size"
+    def __init__(self,name,fs, fc, n,frame_size):
 
         m = 2 * n + 1
         self.size = m
@@ -16,6 +16,10 @@ class SincLPF(AnalogFilter):
         super().__init__(name,fs,a,b)
 
         self.calc()
+
+        self.frame_size = frame_size
+        self.overlap = int(self.percentOL*self.frame_size)
+        self.summary_text = f"Sinc LPFilter @ {fc} Hz, fs={fs}"
 
     def calc(self):
 
@@ -31,3 +35,6 @@ class SincLPF(AnalogFilter):
 
         self.b[0] = 1
 
+
+    def summary(self):
+        return self.summary_text

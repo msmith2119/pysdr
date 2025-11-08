@@ -69,7 +69,9 @@ class AnalogFilter:
     size= 0
     xbuf = 0
     ybuf = 0
-    overlap = 200
+    frame_size = 1000
+    percentOL = 0.2
+    overlap = int(percentOL*frame_size)
     filt = np.zeros(1)
     prevFrame = np.zeros(1)
     prevResult = np.zeros(1)
@@ -82,10 +84,6 @@ class AnalogFilter:
         self.b = b
         self.xbuf = SampleBuffer(a.size)
         self.ybuf = SampleBuffer(b.size)
-
-
-
-
 
 
     def getEnvelope(self,m,n):
@@ -148,24 +146,24 @@ class AnalogFilter:
         return y
 
 
-    def processConv(self,signal_in,frame_size):
+    def processConv(self,signal_in):
 
-        self.overlap = int(0.2*frame_size)
+
         if self.prevFrame.size == 1:
-            self.prevFrame = np.zeros(frame_size)
+            self.prevFrame = np.zeros(self.frame_size)
         M = self.overlap
 
-        env = self.getEnvelope(frame_size + M, M)
+        env = self.getEnvelope(self.frame_size + M, M)
         if self.a.size > 1 :
-            self.filt = fft(self.a, frame_size+M)
+            self.filt = fft(self.a, self.frame_size+M)
         signal_out = Signal(self.name + "(" + signal_in.name + ")", signal_in.size, signal_in.dt)
-        num_frames = int(signal_in.size/frame_size)
+        num_frames = int(signal_in.size/self.frame_size)
 
         for i in range(0,num_frames):
 
-            frame = signal_in.y[i*frame_size:(i+1)*frame_size]
+            frame = signal_in.y[i*self.frame_size:(i+1)*self.frame_size]
             yout = self.processFrame(frame)*env
-            signal_out.add_with_offset(yout,i*frame_size-M)
+            signal_out.add_with_offset(yout,i*self.frame_size-M)
 
         signal_out.x = signal_out.dt*np.array(range(0,signal_out.size))
         return signal_out
@@ -193,10 +191,10 @@ class AnalogFilter:
 
 
 
-    def plotFFT(self,frame_size,stick=False):
+    def plotFFT(self,stick=False):
 
-        self.overlap = int(0.2*frame_size)
-        N = frame_size + self.overlap
+
+        N = self.frame_size + self.overlap
         Ny = int(N/2)
         if self.a.size > 1:
             self.filt = fft(self.a , N)

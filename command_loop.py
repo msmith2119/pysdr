@@ -16,10 +16,12 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
             'filter': self.cmd_filter,
             'signal': self.cmd_signal,
             'filters': self.cmd_filters,
+            'list_filters':self.cmd_list_filters,
             'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
             'connect':self.cmd_connect,
             'show': self.cmd_show,
+            'plot': self.cmd_plot,
             'help': self.cmd_help,
             'filtertype': self.cmd_filtertype,
             'signaltype': self.cmd_signaltype,
@@ -47,8 +49,9 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
         print(f"{key} set to {value}")
 
     def cmd_vars(self, args):
-        for key, value in self.vars.items():
-            print(f"{key} = {value}")
+
+        for key in self.vars:
+            print(f"{key} = {self.vars[key]}")
 
 
     def cmd_show(self, args):
@@ -57,12 +60,13 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
             return
         name = args[0]
         found = False
+
         if name  in self.filters:
-            print("name in filters")
+
             print(self.filters[name].summary())
             found = True
         if name in self.signals:
-            print("name in signals")
+
             print(self.signals[name].summary())
             found = True
         if name in self.pipelines:
@@ -85,6 +89,8 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
         print("  filter <type> <name> [params] - Create and store a filter")
         print("  signal <type> <name> [params] - Create and store a signal")
         print("  filters                      - List all defined filters")
+        print("  plot <name>                  - Plot filter FFT")
+        print("  list_filters                 - list all available filter types")
         print("  signals                      - List all defined signals")
         print("  pipelines                    - List all defined pipelines")
         print("  connect <name> <src> (f1 f2 f3...) <sink>")

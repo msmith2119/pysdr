@@ -21,6 +21,8 @@ class Signal:
     size = 0
     fftdone = False
     filepath = 0
+    frame_index = 0
+    frame_size = 1
 
     def __init__(self, name, size, dt):
         self.name = name
@@ -34,7 +36,31 @@ class Signal:
     def summary(self):
         return self.summary_text
 
+    def initOutputSignal(self):
+        s = Signal(self.name+"out",self.size,self.dt)
+        s.frame_size = self.frame_size
+        return s
 
+    def getFrame(self):
+
+
+        offset = self.frame_index*self.frame_size
+        if  not offset  < self.size:
+            return None
+        frame = self.y[offset:offset + self.frame_size]
+        padding_length = self.frame_size - len(frame)
+        if padding_length > 0:
+            frame += [0] * padding_length
+        self.frame_index+=1
+
+    def writeFrame(self,frame):
+
+        offset = self.frame_index * self.frame_size
+        if not offset < self.size:
+            return
+        last_n = self.size - offset
+        self.y[offset:offset + self.frame_size] = frame[0:last_n]
+        self.frame_index+=1
 
     def add(self, other):
         s = Signal(self.name + "+" + other.name, self.size, self.dt)
