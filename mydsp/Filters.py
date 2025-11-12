@@ -126,7 +126,25 @@ class AnalogFilter:
 
         return y
 
+    def doFrame(self,frame):
 
+        M = self.overlap
+        prev_result_size = self.prevResult.size
+        env = self.getEnvelope(self.frame_size + M, M)
+        yin = frame
+        if M != 0:
+            yin = np.concatenate((self.prevFrame[-M:], frame))
+
+        y = self.fft_convolution(yin)*env
+
+        yout = np.copy(self.prevResult)
+        yout[-M:0]+=y[:M]
+        self.prevResult = y[M:]
+        self.prevFrame = frame
+# This is the first frame
+        if prev_result_size > 1:
+            return None
+        return yout
 
     def fft_convolution(self,yin):
 
