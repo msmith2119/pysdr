@@ -1,6 +1,17 @@
+import os
+from pathlib import Path
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+def to_number(x):
+    try:
+        f = float(x)
+        return int(f) if f.is_integer() else f
+    except (ValueError, TypeError):
+        return 0
+
 
 def resize_array(arr, N):
 
@@ -72,3 +83,22 @@ def plot_array(w):
     plt.ylabel("Value")
     plt.title("Plot of Array x")
     plt.grid(True)
+
+
+
+
+def is_writable(file_path):
+    p = Path(file_path)
+    parent_dir = p.parent
+
+    # Parent directory must exist and be writable
+    if not parent_dir.exists() or not os.access(parent_dir, os.W_OK):
+        return False
+
+    # If file exists, check write permission
+    if p.exists():
+        return os.access(p, os.W_OK)
+
+    # File doesn't exist, but parent is writable → file is creatable
+    return True
+

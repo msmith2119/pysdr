@@ -13,7 +13,9 @@ class FFTNotchFilter(AnalogFilter):
 
         self.n = 0
         self.frame_size = frame_size
+
         self.overlap = int(self.percentOL*self.frame_size)
+
         super().__init__(name,fs, a, b)
         buffer_size =  self.frame_size + self.overlap
         freqs = np.fft.fftfreq(buffer_size, d=1 / fs)  # Frequency values for each bin

@@ -20,7 +20,6 @@ class FFTLPFilter(AnalogFilter):
         buffer_size =  self.frame_size + self.overlap
         freqs = np.fft.fftfreq(buffer_size, d=1 / fs)  # Frequencies for each bin
         self.filt = np.zeros(buffer_size)  # Start with all-stop
-
         # Pass everything with |f| <= fc
         self.filt[np.abs(freqs) <= fc] = 1.0
 

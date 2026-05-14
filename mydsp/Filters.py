@@ -1,6 +1,7 @@
 import cmath
 from enum import Enum
 
+import numpy as np
 from numpy.polynomial.polynomial import polyval
 
 from .SigClasses import *
@@ -128,8 +129,13 @@ class AnalogFilter:
 
     def doFrame(self,frame):
 
+        if frame is None :
+            return self.prevResult
         M = self.overlap
         prev_result_size = self.prevResult.size
+        if self.prevFrame.size == 1:  # first time in previous results set to zero
+            self.prevFrame = np.zeros(self.frame_size)
+            self.prevResult = np.zeros(self.frame_size)
         env = self.getEnvelope(self.frame_size + M, M)
         yin = frame
         if M != 0:
@@ -138,11 +144,11 @@ class AnalogFilter:
         y = self.fft_convolution(yin)*env
 
         yout = np.copy(self.prevResult)
-        yout[-M:0]+=y[:M]
+        yout[-M:]+=y[:M]
         self.prevResult = y[M:]
         self.prevFrame = frame
 # This is the first frame
-        if prev_result_size > 1:
+        if prev_result_size == 1:
             return None
         return yout
 

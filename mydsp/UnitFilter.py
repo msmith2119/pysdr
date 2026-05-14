@@ -1,31 +1,18 @@
+from .FFTLPFilter import FFTLPFilter
 from .Filters import *
 
-class UnitFilter(AnalogFilter):
+class UnitFilter(FFTLPFilter):
     fc = 0
     n = 0
+    frame_size =  1
+    def __init__(self,name,frame_size):
 
-    def __init__(self,name, fs, fc, n):
+        self.frame_size = frame_size
+        self.prevResult = np.zeros(0)
+        self.summary_text = f"Unit Filter @  N={frame_size}"
+    def doFrame(self,frame):
 
-        m = 2 * n + 1
-        self.size = 1
-        a = np.zeros(1)
-        b = np.zeros(1)
-        a[0]=1
-        b[0]=1
-        self.fc = fc
-        self.fs = fs
-        self.n = n
-        super().__init__(name,a,b)
+        return frame
 
-
-
-
-    def impulse(self,n):
-        s = Signal("impulse-" + self.name,  n, 1 / self.fs)
-        s.x[0] = 0.0
-        s.y[0] = self.getOutput(1.0)
-        for i in range(1,n):
-            s.x[i] = i/self.fs
-            s.y[i] = self.getOutput(0.0)
-
-        return s
+    def summary(self):
+        return self.summary_text

@@ -2,27 +2,45 @@ from commands import dsl_globals
 from commands.filter_commands import FilterCommands
 from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
+from commands.io_commands import IOCommands
 from mydsp import *
-class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
+from utils.MyLogger import MyLogger
+from utils.MyLogger import LogLevel
+
+MyLogger.set_level(LogLevel.INFO)
+class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
     def __init__(self):
         self.vars = {}
         self.filters = {}
         self.signals = {}
         self.pipelines = {}
+        self.sources = {}
+        self.sinks = {}
         self.commands = {
             'set':self.cmd_set,
             'vars':self.cmd_vars,
             'test':self.cmd_test,
             'filter': self.cmd_filter,
             'signal': self.cmd_signal,
+            'source': self.cmd_input_src,
+            'sources':self.cmd_sources,
+            'sourcetype':self.cmd_sourcetype,
+            'sink': self.cmd_output_sink,
+            'sinks': self.cmd_sinks,
+            'sinktype': self.cmd_sinktype,
+            'list_sinks':self.cmd_list_sinks,
             'filters': self.cmd_filters,
-            'list_filters':self.cmd_list_filters,
+            'filter_types':self.cmd_list_filters,
+            'list_sources':self.cmd_list_sources,
             'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
+            'run':self.cmd_run_pipeline,
             'connect':self.cmd_connect,
+            'exec':self.cmd_exec,
             'show': self.cmd_show,
             'plot': self.cmd_plot,
             'help': self.cmd_help,
+            'quit':self.cmd_quit,
             'filtertype': self.cmd_filtertype,
             'signaltype': self.cmd_signaltype,
         }
@@ -62,25 +80,49 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
         found = False
 
         if name  in self.filters:
-
             print(self.filters[name].summary())
             found = True
-        if name in self.signals:
-
-            print(self.signals[name].summary())
+        if name in self.sources:
+            print(self.sources[name].summary())
             found = True
+        if name in self.sinks:
+            print(self.sinks[name].summary())
+            found=True
         if name in self.pipelines:
             src = self.pipelines[name]['src']
             sink = self.pipelines[name]['sink']
             thefilters = self.pipelines[name]['filters']
-            print(f"Input src {src.name}")
-            print(f"Output sink {sink.name}")
-            print(*[f.name for f in thefilters])
+            print(f"Input src {src.summary()}")
+            print(f"Output sink {sink.summary()}")
+            #print(*[f.name for f in thefilters])
+
+            n = 1
+            for f in thefilters:
+                print(f"filter {n}: {f.summary()}")
+                n+=1
             found = True
         if not found:
             print("Object not found")
 
 
+    def object_type(self, object_type,sub_type):
+
+
+        class_name = sub_type + object_type
+        cl = globals().get(class_name)
+        cls = cl.__dict__.get(class_name)
+
+
+
+        if not cls:
+            print(f"{object_type} class '{class_name}' not found.")
+            return
+
+        desc = cls.description
+        if desc:
+            print(f"{class_name}: {desc}")
+        else:
+            print(f"{class_name} exists but has no description.")
 
     def cmd_help(self, args):
         print("Available commands:")
@@ -88,26 +130,35 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
         print("  vars - list all context variables")
         print("  filter <type> <name> [params] - Create and store a filter")
         print("  signal <type> <name> [params] - Create and store a signal")
+        print("  source <type> <name> [params] - Create and store a source")
         print("  filters                      - List all defined filters")
         print("  plot <name>                  - Plot filter FFT")
         print("  list_filters                 - list all available filter types")
+        print("  list_sources                 - list all available source types")
         print("  signals                      - List all defined signals")
+        print("  exec filename               - execute the commands in filename")
         print("  pipelines                    - List all defined pipelines")
+        print("  run pipeline                - run the pipeline")
         print("  connect <name> <src> (f1 f2 f3...) <sink>")
         print("  show <objectname>           - Show details of a specific object")
         print("  filtertype <type>           - Show parameters for a filter type")
         print("  signaltype <type>           - Show parameters for a signal type")
+        print("  sourcetype <type>           - Show parameters for an source type")
         print("  help                        - Show this help message")
         print("  exit / quit                 - Exit the REPL")
 
-
+    def cmd_quit(self,args):
+        exit()
     def execute_command(self,line):
         parts = line.split()
         cmd, args = parts[0], parts[1:]
+
+        print(f"** {line}")
         if cmd in self.commands:
-            self.commands[cmd](args)
+            return self.commands[cmd](args)
         else:
             print(f"Unknown command: {cmd}. Type 'help' for a list of commands.")
+            return 1
 
     def run(self):
         print("Custom Filter DSL REPL. Type 'help' for commands. Type 'exit' to quit.")
@@ -125,6 +176,17 @@ class DSLContext(FilterCommands,SignalCommands,PipelineCommands):
                 print("\n(Use 'exit' to quit)")
             except Exception as e:
                 print(f"Error: {e}")
+
+    def runFile(self, filename):
+        with open(filename, 'r') as f:
+            for line in f:
+                line = line.strip()
+
+                if not line or line.startswith('#'):
+                    continue  # ignore empty lines or comments
+                if self.execute_command(line) == 1 :
+                    print(f"Error halting exec({filename})")
+                    break
 
 
 if __name__ == "__main__":

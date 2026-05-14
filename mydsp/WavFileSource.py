@@ -2,6 +2,7 @@ import wave
 import numpy as np
 
 class WavFileSource:
+    description = "Wave File PCM audio source path=filepath, frame_size=frame_size"
     def __init__(self, file_name, frame_size):
         self.file_name = file_name
         self.frame_size = frame_size
@@ -11,7 +12,7 @@ class WavFileSource:
         self.sample_width = self.wav.getsampwidth()
         self.sample_rate = self.wav.getframerate()
         self.num_frames_total = self.wav.getnframes()
-
+        self.summary_text = f"Wave File Source file={self.file_name} frame_size={self.frame_size} sample_rate={self.sample_rate}"
         if self.sample_width != 2:
             raise ValueError("Only 16-bit PCM WAV files are supported.")
 
@@ -30,12 +31,17 @@ class WavFileSource:
 
         # Normalize to range (-1, 1)
         floats = samples.astype(np.float32) / 32768.0
-
+        if len(floats) < self.frame_size:
+            floats = np.pad(floats, (0, self.frame_size - len(floats)), mode="constant")
         return floats
 
     def close(self):
         """Close the underlying WAV file."""
         self.wav.close()
+
+
+    def summary(self):
+        return self.summary_text
 
 # Example usage:
 if __name__ == "__main__":

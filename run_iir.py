@@ -7,13 +7,14 @@ from mydsp.Filters import *
 from mydsp.LPFilter import LPFilter
 from mydsp.NotchFilter import NotchFilter
 from mydsp.SincLPFilter import SincLPFilter
+from mydsp.UnitFilter import UnitFilter
 from mydsp.WavFileSink import WavFileSink
 from mydsp.WavFileSource import WavFileSource
 
 frame_size = 1000
-fs = 8000
+fs = 8000.0
 
-scq = Signal.from_file("audio/cqi.wav")
+scq = Signal.from_file("audio/cqi2.wav")
 #s2 = Generators.sineWave("sine2",0.5,1200,fs,0,1.0)
 s2 = scq[0]
 
@@ -21,27 +22,41 @@ s2 = scq[0]
 #f = LPFilter("fft",8000,800,frame_size)
 #f = FFTNotchFilter("notch",fs,1000,100,frame_size + 200)
 #f = AnalogFilter("simp",fs,np.array([1,1]),np.array([1]))
-f = NotchFilter("notch",fs,1000,100,frame_size)
+f = NotchFilter("notch",fs,1000.0,100.0,frame_size)
+#f = UnitFilter("unitF",frame_size)
 #f.impulse().plotTime()
 #f.plot(1)
-f.plotFFT()
+#f.plotFFT()
 #start_time = time.time()
 #s5 = f.processConv(s2,frame_size)
 s2.frame_size = frame_size
 
 
-source = WavFileSource("audio/cqi.wav",frame_size)
+source = WavFileSource("audio/cqi2.wav",frame_size)
 sink = WavFileSink("iir_out.wav", frame_size, sample_rate=fs)
+
 while True:
     frame = source.getFrame()
     if frame is None:
           break
     out_frame = f.doFrame(frame)
+#    out_frame = frame
     if out_frame is not None:
          sink.writeFrame(out_frame)
-sink.writeFrame(f.prevResult)
+
+N = 1
+filters = [f]
+for i in range(N):
+    y = None
+    for j in range(i, N):
+        y = filters[j].doFrame(y)
+        if y is not None:
+            sink.writeFrame(y)
+
+
 sink.close()
 source.close()
+
 
 #s5 = f.process(s2)
 #s5 = f.processConv(s2)
@@ -57,5 +72,5 @@ source.close()
 #Signal.to_file(sout,"iir_out.wav")
 #print(f"Filter time: {elapsed_time:.6f} seconds")
 #f.plotEnvelope(1000)
-plt.show()
+#plt.show()
 

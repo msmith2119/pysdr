@@ -1,11 +1,25 @@
-from mydsp.NotchFilter import NotchFilter
-from mydsp.SigClasses import description
 
-#f = NotchFilter("aa",8000,1000,101,1000)
+import wave
 
-class_name = "NotchFilter"
-print(globals().keys())
-cl = globals().get(class_name)
-description = getattr(cl,"description")
-print(type(cl))
-print(description)
+import numpy as np
+import sounddevice as sd
+
+
+
+
+wav = wave.open("../audio/cqi2.wav", "rb")
+sample_rate = wav.getframerate()
+num_channels = wav.getnchannels()
+print(f"sample_rate={sample_rate}")
+raw_bytes = wav.readframes(wav.getnframes())
+samples = np.frombuffer(raw_bytes, dtype=np.int16)
+if num_channels > 1:
+    samples = samples[::num_channels]
+audio = samples.astype(np.float32) / 32768.0
+wav.close()
+sd.play(audio, samplerate=sample_rate)
+sd.wait()
+#print(sd.query_devices())
+
+
+
