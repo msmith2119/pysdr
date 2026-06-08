@@ -16,7 +16,7 @@ class WavFileSource:
         if self.sample_width != 2:
             raise ValueError("Only 16-bit PCM WAV files are supported.")
 
-    def getFrame(self):
+    def getMonoFrame(self):
         """Read the next frame_size samples as float32 in range (-1, 1)."""
         raw_bytes = self.wav.readframes(self.frame_size)
         if not raw_bytes:
@@ -35,6 +35,76 @@ class WavFileSource:
             floats = np.pad(floats, (0, self.frame_size - len(floats)), mode="constant")
         return floats
 
+    def getMultiFrame(self):
+        """
+        Return next block of audio samples as float32 matrix.
+
+        Shape:
+            (block_size, num_channels)
+
+        Note:
+            WAV 'frame' = one multi-channel sample
+            block_size = number of WAV frames returned per call
+        """
+
+        raw_bytes = self.wav.readframes(self.frame_size)
+
+        if not raw_bytes:
+            return None
+
+        samples = np.frombuffer(raw_bytes, dtype=np.int16)
+
+        frames_read = len(samples) // self.num_channels
+
+        # reshape into (frames, channels)
+        samples = samples.reshape(frames_read, self.num_channels)
+
+        floats = samples.astype(np.float32) / 32768.0
+
+        # pad final block if short
+        if frames_read < self.frame_size:
+            pad_rows = self.frame_size - frames_read
+
+            padding = np.zeros(
+                (pad_rows, self.num_channels),
+                dtype=np.float32
+            )
+
+            floats = np.vstack((floats, padding))
+
+        return floats
+
+    def getComplexFrame(self):
+        """
+        Return block as complex64 array (IQ-style).
+
+        Mapping:
+            real = channel 0
+            imag = channel 1 (or 0 if mono)
+
+        Shape:
+            (block_size,)
+        """
+
+        frame = self.getMultiFrame()
+
+        if frame is None:
+            return None
+
+        real = frame[:, 0]
+
+        if self.num_channels >= 2:
+            imag = frame[:, 1]
+        else:
+            imag = np.zeros_like(real)
+
+        return real.astype(np.complex64) + 1j * imag.astype(np.complex64)
+
+    def close(self):
+        self.wav.close()
+
+    def summary(self):
+        return self.summary_text
     def close(self):
         """Close the underlying WAV file."""
         self.wav.close()

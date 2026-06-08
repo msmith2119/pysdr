@@ -81,7 +81,7 @@ class PipelineCommands:
         print(f"Running pipeline : {pname}")
 
         pipe_executor = PipelineExecutor(pipe_line)
-        pipe_executor.run()
+        pipe_executor.run2()
 
 
     def cmd_pipelines(self, args):

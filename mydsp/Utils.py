@@ -102,3 +102,37 @@ def is_writable(file_path):
     # File doesn't exist, but parent is writable → file is creatable
     return True
 
+def parse_argv(argv):
+    """
+    Parse command line arguments of the form:
+
+        -key value
+        -flag
+
+    Returns a dict:
+        {
+            "key": "value",
+            "flag": "True"
+        }
+    """
+
+    result = {}
+    i = 1  # skip argv[0] (program name)
+
+    while i < len(argv):
+        arg = argv[i]
+
+        if arg.startswith("-") and len(arg) > 1:
+            key = arg[1:]
+
+            # Check if next token exists and is not another switch
+            if (i + 1 < len(argv)) and (not argv[i + 1].startswith("-")):
+                result[key] = argv[i + 1]
+                i += 2
+            else:
+                result[key] = "True"
+                i += 1
+        else:
+            i += 1
+
+    return result

@@ -24,3 +24,8 @@ class MyLogger:
     def log_dict(cls,d,level: LogLevel):
         if level >= cls._current_level:
             cls.log(json.dumps(d, indent=2), LogLevel.INFO)
+
+
+    @classmethod
+    def error(cls,msg):
+        cls.log(msg,LogLevel.ERROR)

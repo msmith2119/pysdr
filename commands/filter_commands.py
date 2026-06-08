@@ -6,6 +6,7 @@ from mydsp.NotchFilter import NotchFilter
 from mydsp.LPFilter import LPFilter
 from mydsp.UnitFilter import UnitFilter
 from mydsp.SincLPFilter import SincLPFilter
+from mydsp.HPFilter import HPFilter
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt

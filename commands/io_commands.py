@@ -2,6 +2,8 @@ import re
 import os
 from pathlib import Path
 
+from mydsp.MorseCodeSource import MorseCodeSource
+from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.WavFileSink import WavFileSink
 from mydsp.Utils import is_writable
 from utils.MyLogger import MyLogger
@@ -12,7 +14,10 @@ all_sinks = ["WavFile"]
 
 from mydsp.WavFileSource import WavFileSource
 from .dsl_globals import get_context
+from mydsp.Utils import to_number
 
+noise_params = ['num_channels', 'amplitude', 'frame_size']
+morse_params  = ['sample_rate','frame_size','msg_file','amplitude','wpm','tone']
 class IOCommands:
 
 
@@ -49,33 +54,15 @@ class IOCommands:
         name = m.group(2)
         params = m.group(3)
 
-        items = params.split(',')
-        params = {}
-        for item in items:
-            k, v = item.split('=')
-            params[k] = get_context().vars.get(v,v)
-
-        if 'path' not in params:
-            print("path parameter missing")
+        if stype == "WavFile":
+            return self.gen_wavesource(name,params)
+        elif stype == "Noise":
+            return self.gen_noisesource(name,params)
+        elif stype == "Morse":
+            return self.gen_morsesource(name,params)
+        else :
+            MyLogger.error(f"Unknown source type: {stype}")
             return 1
-
-        path = params['path']
-        if not Path(path).exists():
-            print("audio source {path} not found")
-            return 1
-
-        if 'frame_size' not in params:
-            print("frame_size parameter missing")
-            return 1
-
-        frame_size = int(params['frame_size'])
-        frame_size= max(1, frame_size)
-
-        src = WavFileSource(path,frame_size)
-        get_context().vars['sample_rate'] = src.sample_rate
-        self.sources[name]=src
-        print(f"Source {name} created")
-        return 0
 
     def cmd_sourcetype(self, args):
         if len(args) != 1:
@@ -112,7 +99,7 @@ class IOCommands:
         m = re.match(expr, line)
 
         if not m:
-            print("Usage: sink <type> <name> [path=path_to_file,sample_rate=rate,frame_size=frame_size]")
+            print("Usage: sink <type> <name> [path=path_to_file,sample_rate=rate,num_channels=n,frame_size=frame_size]")
             return 1
 
         stype = m.group(1)
@@ -124,7 +111,9 @@ class IOCommands:
         for item in items:
             k, v = item.split('=')
             params[k] = get_context().vars.get(v,v)
-
+            val = self.get_dev_param(v)
+            if val is not None:
+                params[k] = val
         if 'path' not in params:
             print("path parameter missing")
             return 1
@@ -137,6 +126,10 @@ class IOCommands:
             print("sample_rate parameter missing")
             return 1
         sample_rate = int(params['sample_rate'])
+        if 'num_channels' not in params:
+            print("num_channels parameter missing")
+            return 1
+        num_channels = int(params['num_channels'])
         if 'frame_size' not in params:
             print("frame_size parameter missing")
             return 1
@@ -144,7 +137,7 @@ class IOCommands:
         frame_size = int(params['frame_size'])
         frame_size= max(1, frame_size)
 
-        sink = WavFileSink(path,frame_size,sample_rate)
+        sink = WavFileSink(path,num_channels,frame_size,sample_rate)
         self.sinks[name]=sink
         print(f"Sink {name} created")
         return 0
@@ -176,3 +169,104 @@ class IOCommands:
             print(stype)
 
         return 0
+
+
+    def gen_wavesource(self,name,param_str):
+
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        if 'path' not in params:
+            print("path parameter missing")
+            return 1
+
+        path = params['path']
+        if not Path(path).exists():
+            print(f"audio source {path} not found")
+            return 1
+
+        if 'frame_size' not in params:
+            print("frame_size parameter missing")
+            return 1
+
+        print(f"frame_size = {params['frame_size']}")
+        frame_size = int(params['frame_size'])
+        frame_size = max(1, frame_size)
+
+        src = WavFileSource(path, frame_size)
+        get_context().vars['sample_rate'] = src.sample_rate
+        self.sources[name] = src
+        print(f"Source {name} created")
+        return 0
+
+    def gen_noisesource(self,name,param_str):
+
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        param_values = {}
+        for pname in noise_params:
+
+            param_values[pname] = params.get(pname, None)
+            if param_values[pname] is None:
+                MyLogger.log(f'WavCommands.cmd_gen_noise: {pname}  not found ', LogLevel.ERROR)
+                return
+            param_values[pname] = to_number(param_values[pname])
+
+        print(param_values)
+
+        frame_size = int(params['frame_size'])
+        num_channels = int(params['num_channels'])
+        amplitude = float(params['amplitude'])
+        frame_size = max(1, frame_size)
+
+        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels)
+
+        self.sources[name] = src
+        print(f"Source {name} created")
+        return 0
+
+    def gen_morsesource(self,name,param_str):
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        param_values = {}
+        for pname in morse_params:
+
+            param_values[pname] = params.get(pname, None)
+            if param_values[pname] is None:
+                MyLogger.log(f'IOCommands.cmd_gen_morsesource: {pname}  not found ', LogLevel.ERROR)
+                return
+            param_values[pname] = to_number(param_values[pname])
+
+
+
+        frame_size = int(params['frame_size'])
+        sample_rate = int(params['sample_rate'])
+        amplitude = float(params['amplitude'])
+        msg_file = params['msg_file']
+        wpm = float(params['wpm'])
+        tone = float(params['tone'])
+        frame_size = max(1, frame_size)
+
+        if not Path(msg_file).exists():
+            print(f"audio source {msg_file} not found")
+            return 1
+
+        msrc = MorseCodeSource(sample_rate, frame_size, msg_file, amplitude,wpm, tone)
+        self.sources[name] = msrc
+        print(f"Source {name} created")
+        return 0
+

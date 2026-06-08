@@ -3,7 +3,7 @@ import numpy as np
 
 class WavFileSink:
     description = "Wave File PCM audio sink path=filepath, sample_rate=fsample,frame_size=frame_size"
-    def __init__(self, file_name, frame_size, sample_rate=48000):
+    def __init__(self, file_name, num_channels,frame_size, sample_rate=48000):
         """
         Create a WAV file sink that writes float frames (-1..1) as 16-bit PCM.
 
@@ -15,7 +15,7 @@ class WavFileSink:
         self.file_name = file_name
         self.frame_size = frame_size
         self.sample_rate = sample_rate
-        self.num_channels = 1  # mono for now
+        self.num_channels = num_channels  # mono for now
 
         # Open the WAV file for writing
         self.wav = wave.open(file_name, 'wb')
@@ -25,7 +25,7 @@ class WavFileSink:
         self.summary_text = f"Wave File Sink file={self.file_name} frame_size={self.frame_size} sample_rate = {sample_rate}"
     def writeFrame(self, frame):
         """Write one frame (NumPy array of floats in range -1..1) to file."""
-        frame = np.asarray(frame, dtype=np.float32)
+       # frame = np.asarray(frame, dtype=np.float32)
 
         # Clip to avoid overflow if DSP chain exceeds ±1
         np.clip(frame, -1.0, 1.0, out=frame)

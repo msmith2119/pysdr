@@ -1,14 +1,23 @@
+import os
+
+import numpy as np
+
 from commands import dsl_globals
 from commands.filter_commands import FilterCommands
 from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
+from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
 from mydsp import *
+from mydsp.MorseCodeSource import MorseCodeSource
+from mydsp.Utils import parse_argv, plot_array, create_ola_function
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
+import sys
+import matplotlib.pyplot as plt
 
 MyLogger.set_level(LogLevel.INFO)
-class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
+class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCommands):
     def __init__(self):
         self.vars = {}
         self.filters = {}
@@ -28,6 +37,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
             'sink': self.cmd_output_sink,
             'sinks': self.cmd_sinks,
             'sinktype': self.cmd_sinktype,
+            'addwaves': self.cmd_addwaves,
             'list_sinks':self.cmd_list_sinks,
             'filters': self.cmd_filters,
             'filter_types':self.cmd_list_filters,
@@ -46,14 +56,14 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
         }
         dsl_globals.set_context(self)
     def cmd_test(self,args):
-        class_name = "NotchFilter"
-        print(globals().keys())
-        cl = globals().get(class_name)
-        cls = cl.__dict__.get("NotchFilter")
-        print(cls)
-        description = getattr(cls, "description")
-        print(description)
-        #print(description)
+
+
+        msrc = MorseCodeSource(8000,1000,"text/message.txt",1.0,13,500)
+        print(msrc.y)
+        plot_array(msrc.y)
+
+        plt.show()
+
     def cmd_set(self, args):
         if len(args) != 2:
             print("Usage: set <name> <value>")
@@ -63,7 +73,11 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
             value = eval(value, {}, self.vars)  # Evaluate numbers or expressions
         except Exception:
             pass  # Keep it as a string if eval fails
-        self.vars[key] = value
+        val = self.get_dev_param(value)
+        if val is not None:
+            self.vars[key] = val
+        else:
+            self.vars[key] = value
         print(f"{key} set to {value}")
 
     def cmd_vars(self, args):
@@ -103,6 +117,59 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
             found = True
         if not found:
             print("Object not found")
+
+
+    def get_dev_param(self,path):
+
+
+        if not isinstance(path, str):
+            return None
+
+        parts = path.split('.')
+
+        if len(parts) != 3:
+            #MyLogger.log(f"Invalid path {path}",LogLevel.INFO)
+            return None
+
+        names = {
+            'type': parts[0],
+            'name': parts[1],
+            'param': parts[2]
+        }
+
+
+        inst_name = names['name']
+        param_name = names['param']
+        obj = None
+
+        if names['type'] ==  "filter":
+            obj =  self.filters.get(inst_name)
+            if obj == None:
+                MyLogger.log(f"Invalid filter name {inst_name}",LogLevel.WARN)
+                return None
+        elif names['type'] == "source":
+            obj =  self.sources.get(inst_name)
+            if obj == None:
+                MyLogger.log(f"Invalid source name {inst_name}",LogLevel.WARN)
+                return None
+        elif names['type'] == "sink":
+            obj = self.sinks.get(inst_name)
+            if obj == None:
+                MyLogger.log(f"Invalid sink name {inst_name}",LogLevel.WARN)
+                return None
+
+        else:
+            MyLogger.log(f"Invalid type {names['type']}",LogLevel.WARN)
+            return None
+
+        param_value = getattr(obj, param_name,None)
+        if param_value == None:
+            MyLogger.log(f"Unknown parameter {param_name}",LogLevel.WARN)
+            return None
+
+
+        return param_value;
+
 
 
     def object_type(self, object_type,sub_type):
@@ -162,6 +229,13 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands):
 
     def run(self):
         print("Custom Filter DSL REPL. Type 'help' for commands. Type 'exit' to quit.")
+
+        opts = parse_argv(sys.argv)
+        if "f" in opts:
+            if os.path.isfile(opts["f"]):
+                filename = opts["f"]
+                self.runFile(filename)
+                exit(0)
         while True:
             try:
                 line = input(">> ").strip()

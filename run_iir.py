@@ -26,7 +26,7 @@ f = NotchFilter("notch",fs,1000.0,100.0,frame_size)
 #f = UnitFilter("unitF",frame_size)
 #f.impulse().plotTime()
 #f.plot(1)
-#f.plotFFT()
+f.plotFFT()
 #start_time = time.time()
 #s5 = f.processConv(s2,frame_size)
 s2.frame_size = frame_size

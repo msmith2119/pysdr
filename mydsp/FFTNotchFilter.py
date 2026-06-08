@@ -1,24 +1,18 @@
-
-
+from .FFTFilter import FFTFilter
 from .Filters import *
 
-class FFTNotchFilter(AnalogFilter):
+class FFTNotchFilter(FFTFilter):
     fc = 0
     n = 0
 
     def __init__(self, name, fs, fc, fbw, frame_size):
-        a = np.ones(1)
-        b = np.ones(1)
+
         self.fc = fc
-
-        self.n = 0
-        self.frame_size = frame_size
-
-        self.overlap = int(self.percentOL*self.frame_size)
-
-        super().__init__(name,fs, a, b)
+        self.fs = fs
+        #super().__init__(name,fs, a, b)
+        super().__init__(name,fs,frame_size)
         buffer_size =  self.frame_size + self.overlap
-        freqs = np.fft.fftfreq(buffer_size, d=1 / fs)  # Frequency values for each bin
+        freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequency values for each bin
         self.filt = np.ones(buffer_size)  # Start with all-pass
 
         # Define the notch bounds

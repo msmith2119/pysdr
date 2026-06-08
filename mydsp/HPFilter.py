@@ -4,8 +4,8 @@ import numpy as np
 from .FFTFilter import FFTFilter
 from .Utils import to_number
 
-class LPFilter(FFTFilter):
-    description = "LPfilter with parameters: fs=<sampling freq>, fc=<cuttof freq>, sbg=<stopband gain>, frame_size=<frame size>"
+class HPFilter(FFTFilter):
+    description = "HPfilter with parameters: fs=<sampling freq>, fc=<cuttof freq>, sbg=<stopband gain>, frame_size=<frame size>"
 
 
     def __init__(self, name, fs, fc,sbg, frame_size):
@@ -16,7 +16,7 @@ class LPFilter(FFTFilter):
         self.sbg = to_number(sbg)
         self.frame_size = to_number(frame_size)
         self.calc()
-        self.summary_text = f"LP Filter @ {fc} Hz, frame_size={frame_size}, fs={fs}, fc={fc} , sbg={sbg}"
+        self.summary_text = f"HP Filter @ {fc} Hz, frame_size={frame_size}, fs={fs}, fc={fc} , sbg={sbg}"
 
     def calc(self):
         self.size = 0
@@ -27,9 +27,8 @@ class LPFilter(FFTFilter):
         freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequencies for each bin
         self.filt = np.full(buffer_size,self.sbg)  # Start with all-stop
 
-
         # Pass everything with |f| <= fc
-        self.filt[np.abs(freqs) <= self.fc] = 1.0
+        self.filt[np.abs(freqs) >= self.fc] = 1.0
     def summary(self):
         return self.summary_text
 
