@@ -7,12 +7,15 @@ from mydsp.LPFilter import LPFilter
 from mydsp.UnitFilter import UnitFilter
 from mydsp.SincLPFilter import SincLPFilter
 from mydsp.HPFilter import HPFilter
+from mydsp.BPFilter  import BPFilter
+from mydsp.EQFilter import EQFilter
+
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","Notch","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Unit"]
 
 class FilterCommands:
 
@@ -41,8 +44,20 @@ class FilterCommands:
         for k,v in pairs:
            # params[k] = eval(v, get_context().vars)
             params[k] = get_context().vars.get(v,v)
+        MyLogger.log(json.dumps(params, indent=2), LogLevel.INFO)
+        if params.get('fs',None) is  None:
+            sample_rate = get_context().vars.get('sample_rate',None)
+            if sample_rate is None:
+                MyLogger.error("cmd_filter: No sample rate defined")
+                return 1
+            params['fs'] = sample_rate
 
-        MyLogger.log(json.dumps(params, indent=2),LogLevel.INFO)
+        if params.get('frame_size',None) is  None:
+            frame_size = get_context().vars.get('frame_size',None)
+            if frame_size is None:
+                MyLogger.error("cmd_filter: No frame_size defined")
+                return 1
+            params['frame_size'] = frame_size
         f = filter_class(**params)
 
 

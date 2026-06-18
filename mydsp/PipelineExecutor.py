@@ -37,7 +37,7 @@ class PipelineExecutor:
     def run2(self):
 
 
-        print(f"filters_banks[0] = {self.filter_banks[0]}")
+        self.sink.start()
         while True:
             block = self.src.getMultiFrame()
             cols = []

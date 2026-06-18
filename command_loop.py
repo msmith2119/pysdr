@@ -14,6 +14,7 @@ from mydsp.Utils import parse_argv, plot_array, create_ola_function
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 import sys
+import re
 import matplotlib.pyplot as plt
 
 MyLogger.set_level(LogLevel.INFO)
@@ -38,6 +39,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'sinks': self.cmd_sinks,
             'sinktype': self.cmd_sinktype,
             'addwaves': self.cmd_addwaves,
+            'gennoise': self.cmd_gennoise,
             'list_sinks':self.cmd_list_sinks,
             'filters': self.cmd_filters,
             'filter_types':self.cmd_list_filters,
@@ -56,13 +58,9 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         }
         dsl_globals.set_context(self)
     def cmd_test(self,args):
+        return
 
 
-        msrc = MorseCodeSource(8000,1000,"text/message.txt",1.0,13,500)
-        print(msrc.y)
-        plot_array(msrc.y)
-
-        plt.show()
 
     def cmd_set(self, args):
         if len(args) != 2:

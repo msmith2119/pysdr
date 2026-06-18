@@ -5,8 +5,9 @@ class UnitFilter(FFTLPFilter):
     fc = 0
     n = 0
     frame_size =  1
-    def __init__(self,name,frame_size):
+    def __init__(self,name,fs,frame_size):
         self.name = name
+        self.fs = fs
         self.frame_size = frame_size
         self.prevResult = np.zeros(0)
         self.summary_text = f"Unit Filter @  N={frame_size}"
@@ -20,4 +21,4 @@ class UnitFilter(FFTLPFilter):
     @classmethod
     def from_instance(cls, other):
         print(type(other.name))
-        return cls(other.name + "cpy", other.frame_size)
+        return cls(other.name + "cpy", other.fs,other.frame_size)

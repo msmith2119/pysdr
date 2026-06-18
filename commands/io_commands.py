@@ -4,6 +4,7 @@ from pathlib import Path
 
 from mydsp.MorseCodeSource import MorseCodeSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
+from mydsp.SndCardSink import SndCardSink
 from mydsp.WavFileSink import WavFileSink
 from mydsp.Utils import is_writable
 from utils.MyLogger import MyLogger
@@ -16,8 +17,9 @@ from mydsp.WavFileSource import WavFileSource
 from .dsl_globals import get_context
 from mydsp.Utils import to_number
 
-noise_params = ['num_channels', 'amplitude', 'frame_size']
-morse_params  = ['sample_rate','frame_size','msg_file','amplitude','wpm','tone']
+noise_params = ['amplitude']
+morse_params  = ['msg_file','amplitude','wpm','tone']
+sndcard_params = ['sample_rate','num_channels','frame_size']
 class IOCommands:
 
 
@@ -42,7 +44,7 @@ class IOCommands:
     def cmd_input_src(self,args):
 
         line = ' '.join(args)
-        expr = r"([\w_]+)\s+([\w_]+)\s+\[([^\[\]]+)\]\s*"
+        expr = r"([\w_]+)\s+([\w_]+)\s+\[([^\[\]]*)\]\s*"
         #print(f"line = {line}")
         m = re.match(expr, line)
 
@@ -94,7 +96,7 @@ class IOCommands:
 
     def cmd_output_sink(self,args):
         line = ' '.join(args)
-        expr = r"([\w_]+)\s+([\w_]+)\s+\[([^\[\]]+)\]\s*"
+        expr = r"([\w_]+)\s+([\w_]+)\s+\[([^\[\]]*)\]\s*"
 
         m = re.match(expr, line)
 
@@ -102,43 +104,25 @@ class IOCommands:
             print("Usage: sink <type> <name> [path=path_to_file,sample_rate=rate,num_channels=n,frame_size=frame_size]")
             return 1
 
+
         stype = m.group(1)
         name = m.group(2)
         params = m.group(3)
 
-        items = params.split(',')
-        params = {}
-        for item in items:
-            k, v = item.split('=')
-            params[k] = get_context().vars.get(v,v)
-            val = self.get_dev_param(v)
-            if val is not None:
-                params[k] = val
-        if 'path' not in params:
-            print("path parameter missing")
-            return 1
-        path = params['path']
-        if not is_writable(path):
-            print(f"Cannot write to path {path}")
+        sink = None
+
+        if stype == "WavFile":
+            sink = self.gen_wav_sink(name,params)
+        elif stype == "SndCard":
+            sink = self.gen_sndcard_sink(name,params)
+        else:
+            MyLogger.error(f"Invalid sink type {stype}")
             return 1
 
-        if 'sample_rate' not in params:
-            print("sample_rate parameter missing")
-            return 1
-        sample_rate = int(params['sample_rate'])
-        if 'num_channels' not in params:
-            print("num_channels parameter missing")
-            return 1
-        num_channels = int(params['num_channels'])
-        if 'frame_size' not in params:
-            print("frame_size parameter missing")
+        if sink is None:
             return 1
 
-        frame_size = int(params['frame_size'])
-        frame_size= max(1, frame_size)
-
-        sink = WavFileSink(path,num_channels,frame_size,sample_rate)
-        self.sinks[name]=sink
+        self.sinks[name] = sink
         print(f"Sink {name} created")
         return 0
 
@@ -189,13 +173,15 @@ class IOCommands:
             print(f"audio source {path} not found")
             return 1
 
+        frame_size = int(params.get('frame_size',1))
         if 'frame_size' not in params:
-            print("frame_size parameter missing")
-            return 1
+            frame_size = get_context().vars.get('frame_size',None)
+            if frame_size is None:
+                print("frame_size parameter  not defined")
+                return 1
 
-        print(f"frame_size = {params['frame_size']}")
-        frame_size = int(params['frame_size'])
-        frame_size = max(1, frame_size)
+
+
 
         src = WavFileSource(path, frame_size)
         get_context().vars['sample_rate'] = src.sample_rate
@@ -212,23 +198,35 @@ class IOCommands:
             k, v = item.split('=')
             params[k] = get_context().vars.get(v, v)
 
-        param_values = {}
+
         for pname in noise_params:
 
-            param_values[pname] = params.get(pname, None)
-            if param_values[pname] is None:
+
+            if params.get(pname,None ) is None:
                 MyLogger.log(f'WavCommands.cmd_gen_noise: {pname}  not found ', LogLevel.ERROR)
                 return
-            param_values[pname] = to_number(param_values[pname])
 
-        print(param_values)
+        num_frames = 0
+        if params.get("num_frames",None) is not None:
+            num_frames = int(params['num_frames'])
 
-        frame_size = int(params['frame_size'])
-        num_channels = int(params['num_channels'])
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("cmd_noise_source: frame_size parameter  not defined")
+                return 1
+
+        num_channels = int(params.get('num_channels', 1))
+        if 'num_channels' not in params:
+            num_channels = get_context().vars.get('num_channels', None)
+            if num_channels is None:
+                print("cmd_noise_source: num_channels parameter  not defined")
+                return 1
+
         amplitude = float(params['amplitude'])
-        frame_size = max(1, frame_size)
 
-        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels)
+        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels,num_frames)
 
         self.sources[name] = src
         print(f"Source {name} created")
@@ -251,10 +249,21 @@ class IOCommands:
                 return
             param_values[pname] = to_number(param_values[pname])
 
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("cmd_morse_source: frame_size parameter  not defined")
+                return 1
+
+        sample_rate = int(params.get('sample_rate', 1))
+        if 'sample_rate' not in params:
+            sample_rate = get_context().vars.get('sample_rate', None)
+            if sample_rate is None:
+                print("cmd_morse_source: sample_rate parameter  not defined")
+                return 1
 
 
-        frame_size = int(params['frame_size'])
-        sample_rate = int(params['sample_rate'])
         amplitude = float(params['amplitude'])
         msg_file = params['msg_file']
         wpm = float(params['wpm'])
@@ -269,4 +278,86 @@ class IOCommands:
         self.sources[name] = msrc
         print(f"Source {name} created")
         return 0
+
+    def gen_wav_sink(self,name,param_str):
+
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+            val = self.get_dev_param(v)
+            if val is not None:
+                params[k] = val
+        if 'path' not in params:
+            print("path parameter missing")
+            return None
+        path = params['path']
+        if not is_writable(path):
+            print(f"Cannot write to path {path}")
+            return None
+
+        sample_rate = int(params.get('sample_rate', 1))
+        if 'sample_rate' not in params:
+            sample_rate = get_context().vars.get('sample_rate', None)
+            if sample_rate is None:
+                print("sample_rate parameter  not defined")
+                return 1
+
+        num_channels = int(params.get('num_channels', 1))
+        if 'num_channels' not in params:
+            num_channels = get_context().vars.get('num_channels', None)
+            if num_channels is None:
+                print("num_channels parameter  not defined")
+                return 1
+
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("frame_size parameter  not defined")
+                return 1
+
+
+        sink = WavFileSink(path, num_channels, frame_size, sample_rate)
+
+        return sink
+
+    def gen_sndcard_sink(self,name,param_str):
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            if "=" not in item:
+                continue
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+
+        sample_rate = int(params.get('sample_rate', 1))
+        if 'sample_rate' not in params:
+            sample_rate = get_context().vars.get('sample_rate', None)
+            if sample_rate is None:
+                print("gen_sndcard_sink : sample_rate parameter  not defined")
+                return 1
+
+        num_channels =  int(params.get('num_channels', 1))
+        if 'num_channels' not in params:
+            num_channels = get_context().vars.get('num_channels', None)
+            if num_channels is None:
+                print("num_channels parameter  not defined")
+                return 1
+
+        frame_size =  int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("frame_size  parameter  not defined")
+                return 1
+
+
+        sink = SndCardSink(sample_rate,num_channels,frame_size)
+
+        return sink
 

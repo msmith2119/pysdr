@@ -1,9 +1,10 @@
 import numpy as np
 
 from mydsp.FFTNotchFilter import FFTNotchFilter
+from .FFTFilter import FFTFilter
 from .Utils import to_number
 
-class NotchFilter(FFTNotchFilter):
+class NotchFilter(FFTFilter):
     description = "Notch filter with parameters: fs=<sampling freq>, fc=<center freq>, fbw=<bandwidth>, frame_size=<window size>"
 
 

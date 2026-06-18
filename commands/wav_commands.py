@@ -1,10 +1,14 @@
 
 import re
 
+
+from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 from .dsl_globals import get_context
+from .io_commands import noise_params
+
 
 class WavCommands:
 
@@ -104,3 +108,33 @@ class WavCommands:
         out.close()
 
 
+
+    def cmd_gennoise(self,args):
+        line = ' '.join(args)
+
+        param_str =  line
+        print(param_str)
+        param_str = param_str.strip("[]")
+
+        params = {}
+
+        pairs = [item.split('=') for item in param_str.split(',') if '=' in item]
+        for k, v in pairs:
+            params[k] = get_context().vars.get(v, v)
+
+        print(params)
+        for param in noise_params:
+            print(param)
+            if params.get(param,None) is None:
+                MyLogger.error(f'WavCommands.cmd_gennoise: param {param} not found')
+                return 1
+
+        amplitude = to_number(params['amplitude'])
+        num_channels = to_number(params['num_channels'])
+        out = params['out']
+        frame_size = to_number(params['frame_size'])
+        num_frames = to_number(params['num_frames'])
+        duration = to_number(params['duration'])
+
+        #nsrc= NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels,num_frames)
+        print(f"gennoise  out={out} amplitude={amplitude} num_channels={num_channels} frame_size={frame_size} num_frames={num_frames} duration={duration}")
