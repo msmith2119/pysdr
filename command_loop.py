@@ -26,6 +26,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         self.pipelines = {}
         self.sources = {}
         self.sinks = {}
+        self.pipeline_thread = None
         self.commands = {
             'set':self.cmd_set,
             'vars':self.cmd_vars,
@@ -44,9 +45,12 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'filters': self.cmd_filters,
             'filter_types':self.cmd_list_filters,
             'list_sources':self.cmd_list_sources,
+            'set_dev_param':self.cmd_set_dev_param,
+            'set_pipeline_param':self.cmd_set_pipeline_param,
             'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
             'run':self.cmd_run_pipeline,
+            'stop':self.cmd_stop_pipeline,
             'connect':self.cmd_connect,
             'exec':self.cmd_exec,
             'show': self.cmd_show,
@@ -57,7 +61,9 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'signaltype': self.cmd_signaltype,
         }
         dsl_globals.set_context(self)
+
     def cmd_test(self,args):
+        self.pipeline_thread.dump_filters()
         return
 
 
@@ -82,6 +88,35 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
         for key in self.vars:
             print(f"{key} = {self.vars[key]}")
+
+    def cmd_set_dev_param(self,args):
+
+        path = args[0]
+        value = " ".join(args[1:])
+
+        self.set_dev_param(path,value)
+
+
+
+    def cmd_set_pipeline_param(self,args):
+
+        path = args[0]
+        value = args[1]
+
+        parts = path.split('.')
+
+        if len(parts) != 2:
+            # MyLogger.log(f"Invalid path {path}",LogLevel.INFO)
+            return None
+
+        names = {
+            'inst': parts[0],
+            'pname': parts[1],
+
+        }
+
+        self.pipeline_thread.set_filter_param(parts[0],parts[1],value)
+
 
 
     def cmd_show(self, args):
@@ -117,16 +152,14 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             print("Object not found")
 
 
-    def get_dev_param(self,path):
+    def get_dev_obj_param(self,path):
 
 
-        if not isinstance(path, str):
-            return None
 
         parts = path.split('.')
 
         if len(parts) != 3:
-            #MyLogger.log(f"Invalid path {path}",LogLevel.INFO)
+            # MyLogger.log(f"Invalid path {path}",LogLevel.INFO)
             return None
 
         names = {
@@ -135,32 +168,42 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'param': parts[2]
         }
 
-
         inst_name = names['name']
         param_name = names['param']
         obj = None
 
-        if names['type'] ==  "filter":
-            obj =  self.filters.get(inst_name)
+        if names['type'] == "filter":
+            obj = self.filters.get(inst_name)
             if obj == None:
-                MyLogger.log(f"Invalid filter name {inst_name}",LogLevel.WARN)
+                MyLogger.log(f"Invalid filter name {inst_name}", LogLevel.WARN)
                 return None
         elif names['type'] == "source":
-            obj =  self.sources.get(inst_name)
+            obj = self.sources.get(inst_name)
             if obj == None:
-                MyLogger.log(f"Invalid source name {inst_name}",LogLevel.WARN)
+                MyLogger.log(f"Invalid source name {inst_name}", LogLevel.WARN)
                 return None
         elif names['type'] == "sink":
             obj = self.sinks.get(inst_name)
             if obj == None:
-                MyLogger.log(f"Invalid sink name {inst_name}",LogLevel.WARN)
+                MyLogger.log(f"Invalid sink name {inst_name}", LogLevel.WARN)
                 return None
 
         else:
-            MyLogger.log(f"Invalid type {names['type']}",LogLevel.WARN)
+            MyLogger.log(f"Invalid type {names['type']}", LogLevel.WARN)
             return None
 
-        param_value = getattr(obj, param_name,None)
+        return [obj,param_name]
+
+    def get_dev_param(self,path):
+
+        if not isinstance(path, str):
+            return None
+
+        a = self.get_dev_obj_param(path)
+        if a is  None:
+            return None
+        param_name = a[1]
+        param_value = getattr(a[0], a[1],None)
         if param_value == None:
             MyLogger.log(f"Unknown parameter {param_name}",LogLevel.WARN)
             return None
@@ -169,6 +212,16 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         return param_value;
 
 
+    def set_dev_param(self,path,value):
+
+        a = self.get_dev_obj_param(path)
+        if a is None:
+            return
+
+
+        setter = getattr(a[0], f"set_{a[1]}")
+        print(f"value = {value}")
+        setter(value)
 
     def object_type(self, object_type,sub_type):
 

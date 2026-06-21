@@ -19,7 +19,7 @@ class NotchFilter(FFTFilter):
         self.overlap = int(percentOL * self.frame_size)
         self.calc()
 
-        self.summary_text = f"Notch Filter @ {fc} Hz (BW {fbw} Hz), N={frame_size}, fs={fs}"
+
 
 
     def calc(self):
@@ -37,8 +37,8 @@ class NotchFilter(FFTFilter):
         notch_mask = (np.abs(freqs) >= f_low) & (np.abs(freqs) <= f_high)
         self.filt[notch_mask] = 0.0
     def summary(self):
-        return self.summary_text
+        return f"Notch Filter @ {self.fc} Hz (BW {self.fbw} Hz), N={self.frame_size}, fs={self.fs}"
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name + "cpy", other.fs, other.fc, other.fbw,other.frame_size)
+        return cls(other.name , other.fs, other.fc, other.fbw,other.frame_size)

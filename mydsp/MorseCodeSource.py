@@ -71,7 +71,8 @@ morse = {
 }
 
 class MorseCodeSource:
-    def __init__(self,sample_rate,frame_size,msgFile,amplitude,wpm,tone):
+    description = "Morse Source : sample_rate = sample_rate frame_size = frame_size ,msg_file = msgFile ,wpm = wpm ,tone = freq Hz"
+    def __init__(self,sample_rate,frame_size,msgFile,amplitude,wpm,tone,loop=False):
 
         self.frame_size = frame_size
         self.num_channels = 1
@@ -85,7 +86,7 @@ class MorseCodeSource:
         self.dM = int(self.dit_ms*sample_rate/1000.0)
         self.dN = int(self.dah_ms*sample_rate/1000.0)
         self.W = 2*3.1415*tone/sample_rate
-
+        self.loop = loop
         env_dit = self.getEnvelope(self.dM,int(0.1*self.dM))
         env_dah = self.getEnvelope(self.dN,int(0.1*self.dN))
         self.dit_array = np.zeros(self.dM)
@@ -104,7 +105,7 @@ class MorseCodeSource:
         self.loadMsg()
         self.curpos = 0
 
-        self.summary_text = f"Morse Source : sample_rate = {self.sample_rate} frame_size = {self.frame_size} ,msg_file = {self.msgFile} ,wpm = {self.wpm} ,tone = {self.tone}"
+        self.summary_text = f"Morse Source : sample_rate = {self.sample_rate} frame_size = {self.frame_size} ,msg_file = {self.msgFile} ,wpm = {self.wpm} ,tone = {self.tone} loop={self.loop}"
 
 
     def loadMsg(self):
@@ -178,6 +179,9 @@ class MorseCodeSource:
             frame[:n] = self.y[self.curpos:self.curpos + n]
             self.curpos += n
             return frame[:, None]
+        elif self.loop:
+            self.curpos=0
+            return self.getMultiFrame()
         else:
             return None
 

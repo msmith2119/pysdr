@@ -22,8 +22,18 @@ class BPFilter(FFTFilter):
         self.overlap = int(percentOL * self.frame_size)
         self.calc()
 
-        self.summary_text = f"BP Filter @ {fc} Hz (BW {fbw} Hz),sbg={sbg} N={frame_size}, fs={fs}"
 
+
+    def set_fc(self, fc):
+        self.fc = to_number(fc)
+        self.calc()
+
+    def set_sbg(self, sbg):
+        self.sbg = to_number(sbg)
+        self.calc()
+    def set_fbw(self, fbw):
+        self.fbw = to_number(fbw)
+        self.calc()
 
     def calc(self):
 
@@ -42,8 +52,8 @@ class BPFilter(FFTFilter):
         self.filt[pass_mask] = 1.0
 
     def summary(self):
-        return self.summary_text
+        return f"BP Filter fc={self.fc} ,fbw={self.fbw} ,sbg={self.sbg} N={self.frame_size}, fs={self.fs}"
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name + "cpy", other.fs, other.fc, other.fbw,other.sbg,other.frame_size)
+        return cls(other.name , other.fs, other.fc, other.fbw,other.sbg,other.frame_size)

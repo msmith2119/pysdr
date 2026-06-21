@@ -1,9 +1,11 @@
+import threading
+
 import numpy as np
 
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 
-class PipelineExecutor:
+class PipelineExecutor(threading.Thread):
 
     pipelines = None
     src = None
@@ -11,9 +13,8 @@ class PipelineExecutor:
     filter_banks = []
 
     def __init__(self,pipeline):
-
-
-
+        super().__init__()
+        self.running = False
         self.pipeline = pipeline
         self.src = pipeline['src']
         self.sink = pipeline['sink']
@@ -21,7 +22,7 @@ class PipelineExecutor:
 
         self.channels = self.src.num_channels
         self.frame_size = self.src.frame_size
-        print(f"channels = {self.channels}")
+
 
         for i in range(self.channels):
             filts = []
@@ -33,12 +34,20 @@ class PipelineExecutor:
 
 
 
+    def set_filter_param(self,fname,pname,pvalue):
 
-    def run2(self):
+        for row in self.filter_banks:
+            for filt in row:
+                if filt.name  == fname:
+                    setter = getattr(filt, f"set_{pname}")
+                    setter(pvalue)
 
 
+    def run(self):
+
+        self.running = True
         self.sink.start()
-        while True:
+        while self.running:
             block = self.src.getMultiFrame()
             cols = []
             if block is None:
@@ -77,29 +86,12 @@ class PipelineExecutor:
         self.src.close()
         self.sink.close()
 
-    def run(self):
+    def stop(self):
+        self.running = False
 
-        while True:
-            frame = self.src.getMonoFrame()
-            if frame is None:
-                break
 
-            for  f in self.filters:
-                frame = f.doFrame(frame)
-                if frame is None:
-                    break
+    def dump_filters(self):
 
-            if frame is not None:
-                self.sink.writeFrame(frame)
-
-        N = len(self.filters)
-        for i in range(N):
-            y = None
-            for j in range(i, N):
-                y = self.filters[j].doFrame(y)
-            if y is not None:
-                self.sink.writeFrame(y)
-        self.sink.close()
-        self.src.close()
-
-        return
+        for row in self.filter_banks:
+            for filt in row:
+                print(filt.summary())

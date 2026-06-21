@@ -9,13 +9,14 @@ from mydsp.SincLPFilter import SincLPFilter
 from mydsp.HPFilter import HPFilter
 from mydsp.BPFilter  import BPFilter
 from mydsp.EQFilter import EQFilter
+from mydsp.NoiseAddFilter import NoiseAddFilter
 
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","NoiseAdd","Unit"]
 
 class FilterCommands:
 
@@ -58,6 +59,7 @@ class FilterCommands:
                 MyLogger.error("cmd_filter: No frame_size defined")
                 return 1
             params['frame_size'] = frame_size
+        print(params)
         f = filter_class(**params)
 
 

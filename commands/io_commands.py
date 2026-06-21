@@ -274,7 +274,8 @@ class IOCommands:
             print(f"audio source {msg_file} not found")
             return 1
 
-        msrc = MorseCodeSource(sample_rate, frame_size, msg_file, amplitude,wpm, tone)
+        loop = params.get('loop', False)
+        msrc = MorseCodeSource(sample_rate, frame_size, msg_file, amplitude,wpm, tone,loop)
         self.sources[name] = msrc
         print(f"Source {name} created")
         return 0

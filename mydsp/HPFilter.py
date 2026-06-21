@@ -16,7 +16,14 @@ class HPFilter(FFTFilter):
         self.sbg = to_number(sbg)
         self.frame_size = to_number(frame_size)
         self.calc()
-        self.summary_text = f"HP Filter @ {fc} Hz, frame_size={frame_size}, fs={fs}, fc={fc} , sbg={sbg}"
+
+
+    def set_fc(self, fc):
+        self.fc = to_number(fc)
+        self.calc()
+    def set_sbg(self, sbg):
+        self.sbg = to_number(sbg)
+        self.calc()
 
     def calc(self):
         self.size = 0
@@ -30,8 +37,8 @@ class HPFilter(FFTFilter):
         # Pass everything with |f| <= fc
         self.filt[np.abs(freqs) >= self.fc] = 1.0
     def summary(self):
-        return self.summary_text
+        return f"HP Filter @ {self.fc} Hz, frame_size={self.frame_size}, fs={self.fs}, fc={self.fc} , sbg={self.sbg}"
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name + "cpy", other.fs,other.fc,other.sbg,other.frame_size)
+        return cls(other.name , other.fs,other.fc,other.sbg,other.frame_size)

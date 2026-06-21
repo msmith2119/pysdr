@@ -1,10 +1,12 @@
-
+from email.generator import fcre
 
 import numpy as np
 from matplotlib import pyplot as plt
 
 from mydsp.FFTFilter import FFTFilter
 import ast
+
+
 from .Utils import to_number, plot_array
 
 
@@ -24,7 +26,15 @@ class EQFilter(FFTFilter):
         self.overlap = int(percentOL * self.frame_size)
         self.calc()
 
-        self.summary_text = f"EQ Filter @ {fc} Hz , fc={self.fc}, gain={self.gain} N={frame_size}, fs={fs}"
+
+
+    def set_fc(self, fc):
+        self.fc = np.array(fc.strip("()[]").split(), dtype=int)
+        self.calc()
+
+    def set_gain(self, gain):
+        self.gain = np.array(gain.strip("()[]").split(), dtype=float)
+        self.calc()
 
 
     def calc(self):
@@ -32,33 +42,35 @@ class EQFilter(FFTFilter):
 
         buffer_size = self.frame_size + self.overlap
         df = self.fs/buffer_size
+        fN = self.fs/2.0
         freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequency values for each bin
+        print(freqs)
         self.filt = np.full(buffer_size,1.0)  # Start with all-cut to stop band gain
-        for i in range(len(self.fc)):
-            deltaf = None
-            no = int(self.fc[i] / df)
-            if i == len(self.fc) - 1:
-                deltaf = (self.fc[i] - self.fc[i - 1]) / 2.0
-            else:
-                deltaf = (self.fc[i + 1] - self.fc[i]) / 2.0
+        n = len(self.fc)
 
-            dn = int(deltaf / df)
+        fl = self.fc[0]-self.fc[0]/2
+        fh = self.fc[0] + (self.fc[1]-self.fc[0])/2.0
+        print(f"fl = {fl} fh = {fh}")
+        mask = ((abs(freqs) >= fl) & (abs(freqs) <= fh))
+        print(mask)
+        self.filt[mask] = self.gain[0]
 
-            length = 2 * dn + 1
-            arr = np.zeros(length)
-            for j in range(dn + 1):
-                arr[j] = self.gain[i]
-            for j in range(dn + 1, length):
-                arr[j] = self.gain[i]
+        fl = self.fc[n-1]  - (self.fc[n-1] - self.fc[n-2])/2.0
+        fh = self.fc[n-1] +   (fN - self.fc[n-1])/2.0
+        mask = ((abs(freqs) >= fl) & (abs(freqs) <= fh))
+        self.filt[mask] = self.gain[n-1]
 
-            p =   no - dn
-            self.filt[p:p + len(arr)] *= arr
 
-        self.filt[buffer_size // 2:] = self.filt[:buffer_size // 2][::-1]
+        for j in range(1,len(self.fc)-1):
+            fl = self.fc[j]  - (self.fc[j]-self.fc[j-1])/2.0
+            fh = self.fc[j] + (self.fc[j+1]-self.fc[j])/2.0
+            mask = ((abs(freqs) >= fl) & (abs(freqs) <= fh))
+            self.filt[mask] = self.gain[j]
+
 
     def summary(self):
-        return self.summary_text
+        return f"EQ Filter @ {self.fc} Hz , fc={self.fc}, gain={self.gain} N={self.frame_size}, fs={self.fs}"
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name + "cpy", other.fs, str(other.fc),str(other.gain),other.frame_size)
+        return cls(other.name , other.fs, str(other.fc),str(other.gain),other.frame_size)

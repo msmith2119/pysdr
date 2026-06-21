@@ -6,6 +6,7 @@ from utils import MyLogger
 
 
 class PipelineCommands:
+
     def cmd_connect(self, args):
 
         line = ' '.join(args)
@@ -80,9 +81,12 @@ class PipelineCommands:
 
         print(f"Running pipeline : {pname}")
 
-        pipe_executor = PipelineExecutor(pipe_line)
-        pipe_executor.run2()
+        self.pipeline_thread = PipelineExecutor(pipe_line)
+        self.pipeline_thread.start()
 
+
+    def cmd_stop_pipeline(self, args):
+        self.pipeline_thread.stop()
 
     def cmd_pipelines(self, args):
         if not self.filters:
