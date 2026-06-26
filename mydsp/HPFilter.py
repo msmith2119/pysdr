@@ -18,12 +18,21 @@ class HPFilter(FFTFilter):
         self.calc()
 
 
+    def parameters(self):
+        return ["fc", "sbg"]
+
     def set_fc(self, fc):
         self.fc = to_number(fc)
         self.calc()
     def set_sbg(self, sbg):
         self.sbg = to_number(sbg)
         self.calc()
+
+    def fc_range(self):
+        return [0,self.fs/2.0]
+
+    def sbg_range(self):
+        return [0.0,1.0]
 
     def calc(self):
         self.size = 0

@@ -35,6 +35,15 @@ class BPFilter(FFTFilter):
         self.fbw = to_number(fbw)
         self.calc()
 
+
+    def parameters(self):
+        return ["fc","fbw","sbg"]
+    def fc_range(self):
+        return [0.0,self.fs/2]
+    def sbg_range(self):
+        return [0.0,1.0]
+    def fbw_range(self):
+        return [0.1*self.fc,self.fc]
     def calc(self):
 
 

@@ -21,6 +21,24 @@ class NotchFilter(FFTFilter):
 
 
 
+    def parameters(self):
+        return ["fc", "fbw"]
+
+    def set_fc(self,fc):
+        self.fc = to_number(fc)
+        self.calc()
+
+    def set_fbw(self,fbw):
+        self.fbw = to_number(fbw)
+        self.calc()
+
+
+    def fc_range(self):
+        return [0.0,self.fs/2]
+
+
+    def fbw_range(self):
+        return [0.1*self.fc,self.fc]
 
     def calc(self):
 

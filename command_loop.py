@@ -2,6 +2,8 @@ import os
 
 import numpy as np
 
+import tkinter as tk
+from functools import partial
 from commands import dsl_globals
 from commands.filter_commands import FilterCommands
 from commands.signal_commands import SignalCommands
@@ -10,7 +12,8 @@ from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
 from mydsp import *
 from mydsp.MorseCodeSource import MorseCodeSource
-from mydsp.Utils import parse_argv, plot_array, create_ola_function
+from mydsp.Utils import parse_argv, plot_array, create_ola_function, to_number
+from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 import sys
@@ -27,6 +30,8 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         self.sources = {}
         self.sinks = {}
         self.pipeline_thread = None
+        #self.root = tk.Tk()
+        #self.root.withdraw()
         self.commands = {
             'set':self.cmd_set,
             'vars':self.cmd_vars,
@@ -46,6 +51,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'filter_types':self.cmd_list_filters,
             'list_sources':self.cmd_list_sources,
             'set_dev_param':self.cmd_set_dev_param,
+            'widget':self.cmd_widget_param,
             'set_pipeline_param':self.cmd_set_pipeline_param,
             'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
@@ -63,10 +69,84 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         dsl_globals.set_context(self)
 
     def cmd_test(self,args):
-        self.pipeline_thread.dump_filters()
+
+        name = args[0]
+
+        if self.pipeline_thread is None:
+            MyLogger.error("No pipeline running")
+            return
+
+
+
+        filter = self.filters[name]
+        params = filter.parameters()
+
+        def value_changed(param,value):
+            print(f"set {name} {param} val {value}")
+            self.pipeline_thread.set_filter_param(name, param, value)
+
+        root = tk.Tk()
+        root.title(f"Filter {name}")
+        for param in params:
+            getter = getattr(filter, f"{param}_range")
+            rng = getter()
+            cval = self.pipeline_thread.get_filter_param(name, param)
+            SliderControl(
+                root,
+                param,
+                rng[0],
+                rng[1],
+                cval,
+                partial(value_changed,param)
+            )
+        tk.Button(
+            root,
+            text="Close",
+            command=root.destroy
+        ).pack(pady=10)
+
+        root.mainloop()
         return
 
 
+    def cmd_widget_param(self,args):
+
+      
+        name = args[0]
+
+        if self.pipeline_thread is None:
+            MyLogger.error("No pipeline running")
+            return
+
+        filter = self.filters[name]
+        params = filter.parameters()
+
+        def value_changed(param, value):
+            print(f"set {name} {param} val {value}")
+            self.pipeline_thread.set_filter_param(name, param, value)
+
+        root = tk.Tk()
+        root.title(f"Filter {name}")
+        for param in params:
+            getter = getattr(filter, f"{param}_range")
+            rng = getter()
+            cval = self.pipeline_thread.get_filter_param(name, param)
+            SliderControl(
+                root,
+                param,
+                rng[0],
+                rng[1],
+                cval,
+                partial(value_changed, param)
+            )
+        tk.Button(
+            root,
+            text="Close",
+            command=root.destroy
+        ).pack(pady=10)
+
+        root.mainloop()
+        return
 
     def cmd_set(self, args):
         if len(args) != 2:
@@ -115,6 +195,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
         }
 
+        print("set filter param {parts[0} {parts[1]}")
         self.pipeline_thread.set_filter_param(parts[0],parts[1],value)
 
 

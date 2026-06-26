@@ -73,9 +73,10 @@ class FilterCommands:
         if not self.filters:
             print("No Filters defined.")
             return 0
-        for name in self.filters:
+
+        for name in self.filters.keys():
             print(f"- {name}")
-            return 0
+        return 0
 
     def cmd_filtertype(self, args):
         if len(args) != 1:

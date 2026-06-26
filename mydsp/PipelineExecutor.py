@@ -42,6 +42,12 @@ class PipelineExecutor(threading.Thread):
                     setter = getattr(filt, f"set_{pname}")
                     setter(pvalue)
 
+    def get_filter_param(self,fname,pname):
+        for row in self.filter_banks:
+            for filt in row:
+                if filt.name == fname:
+                    value =getattr(filt, pname)
+                    return value
 
     def run(self):
 
