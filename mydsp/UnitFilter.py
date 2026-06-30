@@ -1,5 +1,5 @@
 from .FFTFilter import FFTFilter
-from .FFTLPFilter import FFTLPFilter
+
 from .Filters import *
 
 class UnitFilter(FFTFilter):

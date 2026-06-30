@@ -1,6 +1,6 @@
 import numpy as np
 
-from mydsp.FFTNotchFilter import FFTNotchFilter
+
 from .FFTFilter import FFTFilter
 from .Parameter import Parameter, ParameterType
 from .Utils import to_number

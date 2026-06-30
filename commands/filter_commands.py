@@ -5,7 +5,6 @@ import mydsp
 from mydsp.NotchFilter import NotchFilter
 from mydsp.LPFilter import LPFilter
 from mydsp.UnitFilter import UnitFilter
-from mydsp.SincLPFilter import SincLPFilter
 from mydsp.HPFilter import HPFilter
 from mydsp.BPFilter  import BPFilter
 from mydsp.EQFilter import EQFilter
