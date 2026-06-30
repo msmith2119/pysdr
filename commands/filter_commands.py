@@ -59,7 +59,6 @@ class FilterCommands:
                 MyLogger.error("cmd_filter: No frame_size defined")
                 return 1
             params['frame_size'] = frame_size
-        print(params)
         f = filter_class(**params)
 
 

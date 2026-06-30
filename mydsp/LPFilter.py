@@ -2,6 +2,7 @@ import numpy as np
 
 
 from .FFTFilter import FFTFilter
+from .Parameter import Parameter, ParameterType
 from .Utils import to_number
 
 class LPFilter(FFTFilter):
@@ -18,18 +19,19 @@ class LPFilter(FFTFilter):
         self.calc()
 
 
-    def parameters(self):
-        return ["fc", "sbg"]
+
+
+    def getParameters(self):
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2.0),
+                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0)]
+
     def set_fc(self,fc):
         self.fc = to_number(fc)
         self.calc()
     def set_sbg(self,sbg):
         self.sbg = to_number(sbg)
         self.calc()
-    def fc_range(self):
-        return [0.0,self.fs/2]
-    def sbg_range(self):
-        return [0.0,1.0]
+
     def calc(self):
         self.size = 0
         percentOL = 0.2

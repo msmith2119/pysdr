@@ -2,12 +2,14 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 from mydsp.FFTFilter import FFTFilter
+from .Parameter import ParameterType, Parameter
 
 from .Utils import to_number, plot_array
 
 
 class BPFilter(FFTFilter):
     description = "Band Pass filter with parameters: fs=<sampling freq>, fc=<center freq>, fbw=<bandwidth>, sbg=<stop band gain> frame_size=<window size>"
+
 
 
     def __init__(self, name, fs, fc, fbw,sbg, frame_size):
@@ -36,14 +38,12 @@ class BPFilter(FFTFilter):
         self.calc()
 
 
-    def parameters(self):
-        return ["fc","fbw","sbg"]
-    def fc_range(self):
-        return [0.0,self.fs/2]
-    def sbg_range(self):
-        return [0.0,1.0]
-    def fbw_range(self):
-        return [0.1*self.fc,self.fc]
+    def getParameters(self):
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2.0),
+                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0),
+                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0)]
+
+
     def calc(self):
 
 

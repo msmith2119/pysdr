@@ -1,4 +1,4 @@
-from email.generator import fcre
+
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -16,7 +16,7 @@ class EQFilter(FFTFilter):
 
     def __init__(self, name, fs, fc,gain, frame_size):
 
-        print(f"passed in fc {fc}")
+
         self.name = name
         self.fs = to_number(fs)
         self.fc = np.array(fc.strip("()[]").split(), dtype=int)
@@ -28,13 +28,25 @@ class EQFilter(FFTFilter):
 
 
 
-    def set_fc(self, fc):
-        self.fc = np.array(fc.strip("()[]").split(), dtype=int)
-        self.calc()
+
 
     def set_gain(self, gain):
         self.gain = np.array(gain.strip("()[]").split(), dtype=float)
         self.calc()
+
+
+    def set_band_gain(self,band,gain_value):
+
+        if 0 <= band < len(self.gain):
+            self.gain[band] = gain_value
+            self.calc()
+
+    def set_dbgain(self,value):
+        [idx,val] = value.split(":")
+        i = int(idx)
+        if 0 <= i < len(self.gain):
+            gain = 10 ** (float(val) / 20)
+            self.set_band_gain(i,gain)
 
 
     def calc(self):
@@ -44,15 +56,15 @@ class EQFilter(FFTFilter):
         df = self.fs/buffer_size
         fN = self.fs/2.0
         freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequency values for each bin
-        print(freqs)
+
         self.filt = np.full(buffer_size,1.0)  # Start with all-cut to stop band gain
         n = len(self.fc)
 
         fl = self.fc[0]-self.fc[0]/2
         fh = self.fc[0] + (self.fc[1]-self.fc[0])/2.0
-        print(f"fl = {fl} fh = {fh}")
+
         mask = ((abs(freqs) >= fl) & (abs(freqs) <= fh))
-        print(mask)
+
         self.filt[mask] = self.gain[0]
 
         fl = self.fc[n-1]  - (self.fc[n-1] - self.fc[n-2])/2.0

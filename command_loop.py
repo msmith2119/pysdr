@@ -1,7 +1,5 @@
 import os
 
-import numpy as np
-
 import tkinter as tk
 from functools import partial
 from commands import dsl_globals
@@ -10,15 +8,15 @@ from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
-from mydsp import *
-from mydsp.MorseCodeSource import MorseCodeSource
-from mydsp.Utils import parse_argv, plot_array, create_ola_function, to_number
+from mydsp.EQFilter import EQFilter
+from ui.EqBand import EqBand
+from ui.EqWidget import EqWidget
+from mydsp.Utils import parse_argv
 from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 import sys
-import re
-import matplotlib.pyplot as plt
+import numpy as np
 
 MyLogger.set_level(LogLevel.INFO)
 class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCommands):
@@ -70,74 +68,64 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
     def cmd_test(self,args):
 
-        name = args[0]
-
-        if self.pipeline_thread is None:
-            MyLogger.error("No pipeline running")
-            return
-
-
-
-        filter = self.filters[name]
-        params = filter.parameters()
-
-        def value_changed(param,value):
-            print(f"set {name} {param} val {value}")
-            self.pipeline_thread.set_filter_param(name, param, value)
-
         root = tk.Tk()
-        root.title(f"Filter {name}")
-        for param in params:
-            getter = getattr(filter, f"{param}_range")
-            rng = getter()
-            cval = self.pipeline_thread.get_filter_param(name, param)
-            SliderControl(
-                root,
-                param,
-                rng[0],
-                rng[1],
-                cval,
-                partial(value_changed,param)
-            )
-        tk.Button(
-            root,
-            text="Close",
-            command=root.destroy
-        ).pack(pady=10)
+        root.title(f"EqBand")
+        fs = 8000
+        filter = EQFilter("myeq",fs,"(60 125 250 500 1000 2000 4000 8000)",1000)
+        print(f"fc = {filter.fc}")
+        freqs = filter.fc
+        def eqchange(i,val):
+            print(f"{i} -> {val}")
+        eqwidget = EqBank(root,freqs,eqchange)
+
 
         root.mainloop()
-        return
-
 
     def cmd_widget_param(self,args):
 
-      
         name = args[0]
+
+      #  if self.pipeline_thread is None:
+      #      MyLogger.error("No pipeline running")
+      #      return
+
+        filter = self.filters.get(name,None)
+
+        if filter is None:
+            print("Filter does not exist : {name}")
+            return
+
+        if type(filter).__name__ == "EQFilter":
+            self.show_eq_widget(filter)
+        else:
+            self.show_filter_widget(name)
+
+    def show_filter_widget(self,name):
+
+
 
         if self.pipeline_thread is None:
             MyLogger.error("No pipeline running")
             return
 
         filter = self.filters[name]
-        params = filter.parameters()
+        params = filter.getParameters()
 
-        def value_changed(param, value):
-            print(f"set {name} {param} val {value}")
-            self.pipeline_thread.set_filter_param(name, param, value)
+        def value_changed(pname, value):
+            self.pipeline_thread.set_filter_param(name, pname, value)
 
         root = tk.Tk()
         root.title(f"Filter {name}")
         for param in params:
-            getter = getattr(filter, f"{param}_range")
-            rng = getter()
-            cval = self.pipeline_thread.get_filter_param(name, param)
+
+            cval = self.pipeline_thread.get_filter_param(name, param.name)
             SliderControl(
                 root,
-                param,
-                rng[0],
-                rng[1],
+                param.name,
+                param.min,
+                param.max,
                 cval,
-                partial(value_changed, param)
+                partial(value_changed, param.name)
             )
         tk.Button(
             root,
@@ -147,6 +135,23 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
         root.mainloop()
         return
+
+
+
+    def show_eq_widget(self,eqfilter):
+
+        root = tk.Tk()
+        root.title(f"EqBand")
+        name = eqfilter.name
+        pname = "dbgain"
+        def eqchange(i, val):
+            print(f"{i} -> {val}")
+            value = f"{i}:{val}"
+            self.pipeline_thread.set_filter_param(name, pname, value)
+
+        eqwidget = EqWidget(root, eqfilter, eqchange)
+
+        root.mainloop()
 
     def cmd_set(self, args):
         if len(args) != 2:
@@ -195,7 +200,6 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
         }
 
-        print("set filter param {parts[0} {parts[1]}")
         self.pipeline_thread.set_filter_param(parts[0],parts[1],value)
 
 
@@ -301,7 +305,6 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
 
         setter = getattr(a[0], f"set_{a[1]}")
-        print(f"value = {value}")
         setter(value)
 
     def object_type(self, object_type,sub_type):

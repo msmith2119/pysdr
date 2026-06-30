@@ -2,6 +2,7 @@ import numpy as np
 
 from mydsp.FFTNotchFilter import FFTNotchFilter
 from .FFTFilter import FFTFilter
+from .Parameter import Parameter, ParameterType
 from .Utils import to_number
 
 class NotchFilter(FFTFilter):
@@ -21,8 +22,11 @@ class NotchFilter(FFTFilter):
 
 
 
-    def parameters(self):
-        return ["fc", "fbw"]
+
+
+    def getParamaters(self):
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2),
+                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0)]
 
     def set_fc(self,fc):
         self.fc = to_number(fc)
@@ -33,12 +37,6 @@ class NotchFilter(FFTFilter):
         self.calc()
 
 
-    def fc_range(self):
-        return [0.0,self.fs/2]
-
-
-    def fbw_range(self):
-        return [0.1*self.fc,self.fc]
 
     def calc(self):
 

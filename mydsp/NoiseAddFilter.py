@@ -3,8 +3,9 @@ import numpy as np
 
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.FFTFilter import FFTFilter
-from mydsp.Utils import to_number
 
+from mydsp.Utils import to_number
+from .Parameter import ParameterType, Parameter
 
 class NoiseAddFilter(FFTFilter):
     fc = 0
@@ -26,14 +27,14 @@ class NoiseAddFilter(FFTFilter):
             return None
         return frame + self.noise.getFrame().ravel()
 
-    def parameters(self):
-        return ["amplitude"]
+
+    def getParameters(self):
+        return [Parameter(ParameterType.FLOAT,"amplitude",0.0,1.0)]
 
     def set_amplitude(self,amplitude):
         self.amplitude = amplitude
         self.noise = NoiseSource(NoiseType.WHITE, self.amplitude, self.frame_size, 1, 0)
-    def amplitude_range(self):
-        return [0.0,1.0]
+
     def summary(self):
         return f"NoiseAddFilter: amplitude={self.amplitude}, fs={self.fs}, frame_size={self.frame_size}"
 

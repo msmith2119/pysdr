@@ -74,18 +74,19 @@ class PipelineExecutor(threading.Thread):
 
 
 
-        for k in range(len(self.filters)):
+        if self.running:
+            for k in range(len(self.filters)):
 
-            colvec = []
-            for i in range(self.channels):
-                y = None
-                for j in range(i,len(self.filters)):
-                    y = self.filter_banks[i][j].doFrame(y)
-                if y is not None:
-                    colvec.append(y)
+                colvec = []
+                for i in range(self.channels):
+                    y = None
+                    for j in range(i,len(self.filters)):
+                        y = self.filter_banks[i][j].doFrame(y)
+                    if y is not None:
+                        colvec.append(y)
 
-            if len(colvec) > 0 :
-                self.sink.writeFrame(np.column_stack(colvec))
+                if len(colvec) > 0 :
+                    self.sink.writeFrame(np.column_stack(colvec))
 
 
 
