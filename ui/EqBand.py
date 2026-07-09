@@ -64,6 +64,9 @@ class EqBand:
             text=label
         ).pack()
 
+    def setValue(self,value):
+        self.slider.set(value)
+
     def pack(self, **kwargs):
         self.frame.pack(**kwargs)
 

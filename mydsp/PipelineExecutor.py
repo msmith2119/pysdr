@@ -55,11 +55,13 @@ class PipelineExecutor(threading.Thread):
         self.sink.start()
         while self.running:
             block = self.src.getMultiFrame()
-            cols = []
             if block is None:
                 break
+            cols = []
+
             for i in range(self.channels):
                 frame = block[:,i]
+
                 for j in range(len(self.filters)):
 
                     frame = self.filter_banks[i][j].doFrame(frame)
@@ -79,9 +81,11 @@ class PipelineExecutor(threading.Thread):
 
                 colvec = []
                 for i in range(self.channels):
+
                     y = None
                     for j in range(i,len(self.filters)):
                         y = self.filter_banks[i][j].doFrame(y)
+
                     if y is not None:
                         colvec.append(y)
 

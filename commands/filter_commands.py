@@ -5,17 +5,19 @@ import mydsp
 from mydsp.NotchFilter import NotchFilter
 from mydsp.LPFilter import LPFilter
 from mydsp.UnitFilter import UnitFilter
+from mydsp.DelayFilter import DelayFilter
 from mydsp.HPFilter import HPFilter
 from mydsp.BPFilter  import BPFilter
 from mydsp.EQFilter import EQFilter
 from mydsp.NoiseAddFilter import NoiseAddFilter
-
+from mydsp.AnalogFilter import AnalogFilter
+from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","NoiseAdd","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","Unit"]
 
 class FilterCommands:
 
@@ -108,11 +110,21 @@ class FilterCommands:
     def cmd_plot(self,args):
 
         name = args[0]
+        fa = 1.0
+
         if name not in self.filters:
             print(f"{name} not found")
             return 1
+        params = {}
+        if len(args)  > 1:
+            param_str = " ".join(args[1:])
+            pairs = [item.split('=') for item in param_str.split(',') if '=' in item]
+            for k,v in pairs:
+                params[k] = to_number(v)
 
+
+        fa = params.get('max',1.0)
         filter = self.filters[name]
-        filter.plotFFT()
+        filter.plotFFT(fa)
         plt.show()
         return 0

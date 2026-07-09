@@ -3,11 +3,11 @@ import numpy as np
 
 class WavFileSource:
     description = "Wave File PCM audio source path=filepath, frame_size=frame_size num_channels=num_channels"
-    def __init__(self, file_name, frame_size):
+    def __init__(self, file_name, frame_size,loop):
         self.file_name = file_name
         self.frame_size = frame_size
         self.wav = wave.open(file_name, 'rb')
-
+        self.loop = loop
         self.num_channels = self.wav.getnchannels()
         self.sample_width = self.wav.getsampwidth()
         self.sample_rate = self.wav.getframerate()
@@ -47,9 +47,16 @@ class WavFileSource:
             block_size = number of WAV frames returned per call
         """
 
-        raw_bytes = self.wav.readframes(self.frame_size)
+       # raw_bytes = self.wav.readframes(self.frame_size)
 
-        if not raw_bytes:
+
+        #if not raw_bytes:
+         #   return None
+
+
+        raw_bytes = self.getRawFrame()
+
+        if raw_bytes is None:
             return None
 
         samples = np.frombuffer(raw_bytes, dtype=np.int16)
@@ -112,6 +119,37 @@ class WavFileSource:
 
     def summary(self):
         return self.summary_text
+
+    def getRawFrame(self):
+
+        framesNeeded = self.frame_size
+        chunks = []
+
+        while framesNeeded > 0:
+
+            raw = self.wav.readframes(framesNeeded)
+
+            if len(raw) == 0:
+
+                if not self.loop:
+
+                    if len(chunks) == 0:
+                        return None
+
+                    break
+
+                self.wav.rewind()
+                continue
+
+            framesRead = len(raw) // (self.num_channels * self.sample_width)
+
+            chunks.append(raw)
+            framesNeeded -= framesRead
+
+        raw = b"".join(chunks)
+
+        # convert raw -> float ndarray
+        return raw
 
 # Example usage:
 if __name__ == "__main__":

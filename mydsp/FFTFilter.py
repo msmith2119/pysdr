@@ -126,7 +126,7 @@ class FFTFilter:
 
 
 
-    def plotFFT(self,stick=False):
+    def plotFFT(self,fa = 1.0,stick=False):
 
 
         N = self.frame_size + self.overlap
@@ -138,7 +138,7 @@ class FFTFilter:
         fft_values = self.filt
         # Frequency axis (including negative frequencies)
         freq = np.fft.fftfreq(N, d=1 / self.fs)
-
+        m = int(float(Ny) * fa)
         # Convert FFT values to magnitude and then to dB scale
         magnitude = np.abs(fft_values)
         magnitude_db = 20 * np.log10(magnitude + 1e-10)  # Added small constant to avoid log(0)
@@ -148,7 +148,8 @@ class FFTFilter:
         yvals = np.ones(N)
         yvals[:Ny] = magnitude_db[Ny:]
         yvals[Ny:] = magnitude_db[:Ny]
-
+        ymax = np.amax(yvals[Ny: Ny + m])
+        ymin = np.amin(yvals[Ny:Ny + m])
         # Plot the frequency response
         plt.figure(figsize=(10, 6))
         plt.plot(xvals, yvals)
@@ -156,8 +157,8 @@ class FFTFilter:
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Magnitude (dB)')
         plt.grid(True)
-        plt.xlim([-self.fs / 2, self.fs / 2])  # Limiting x-axis to show negative and positive frequencies
-
+        plt.xlim([-self.fs*fa / 2, self.fs*fa / 2])  # Limiting x-axis to show negative and positive frequencies
+        plt.ylim(ymin, ymax)
 
 
     def impulse(self):

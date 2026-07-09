@@ -2,7 +2,9 @@ import re
 import os
 from pathlib import Path
 
+
 from mydsp.MorseCodeSource import MorseCodeSource
+from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
 from mydsp.WavFileSink import WavFileSink
@@ -62,6 +64,8 @@ class IOCommands:
             return self.gen_noisesource(name,params)
         elif stype == "Morse":
             return self.gen_morsesource(name,params)
+        elif stype == "RtlFile":
+            return self.gen_rtlsource(name,params)
         else :
             MyLogger.error(f"Unknown source type: {stype}")
             return 1
@@ -120,10 +124,12 @@ class IOCommands:
             return 1
 
         if sink is None:
+            MyLogger.error(f"Error Creating sink {stype}")
             return 1
 
+
         self.sinks[name] = sink
-        print(f"Sink {name} created")
+        print(f"Sink {sink} created")
         return 0
 
     def cmd_sinktype(self, args):
@@ -173,6 +179,7 @@ class IOCommands:
             print(f"audio source {path} not found")
             return 1
 
+        loop = params.get("loop","False") == "True"
         frame_size = int(params.get('frame_size',1))
         if 'frame_size' not in params:
             frame_size = get_context().vars.get('frame_size',None)
@@ -183,7 +190,7 @@ class IOCommands:
 
 
 
-        src = WavFileSource(path, frame_size)
+        src = WavFileSource(path, frame_size,loop)
         get_context().vars['sample_rate'] = src.sample_rate
         self.sources[name] = src
         print(f"Source {name} created")
@@ -280,6 +287,37 @@ class IOCommands:
         print(f"Source {name} created")
         return 0
 
+    def gen_rtlsource(self, name, param_str):
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        if 'path' not in params:
+            print("path parameter missing")
+            return 1
+
+        path = params['path']
+        if not Path(path).exists():
+            print(f"audio source {path} not found")
+            return 1
+
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("frame_size parameter  not defined")
+                return 1
+
+
+        src = RtlFileSource(path,frame_size)
+
+        self.sources[name] = src
+        print(f"Source {name} created")
+        return 0
+
     def gen_wav_sink(self,name,param_str):
 
 
@@ -299,26 +337,27 @@ class IOCommands:
             print(f"Cannot write to path {path}")
             return None
 
+
         sample_rate = int(params.get('sample_rate', 1))
         if 'sample_rate' not in params:
             sample_rate = get_context().vars.get('sample_rate', None)
             if sample_rate is None:
                 print("sample_rate parameter  not defined")
-                return 1
+                return None
 
         num_channels = int(params.get('num_channels', 1))
         if 'num_channels' not in params:
             num_channels = get_context().vars.get('num_channels', None)
             if num_channels is None:
                 print("num_channels parameter  not defined")
-                return 1
+                return None
 
         frame_size = int(params.get('frame_size', 1))
         if 'frame_size' not in params:
             frame_size = get_context().vars.get('frame_size', None)
             if frame_size is None:
                 print("frame_size parameter  not defined")
-                return 1
+                return None
 
 
         sink = WavFileSink(path, num_channels, frame_size, sample_rate)

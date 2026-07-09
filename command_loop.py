@@ -67,19 +67,8 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         dsl_globals.set_context(self)
 
     def cmd_test(self,args):
+        return
 
-        root = tk.Tk()
-        root.title(f"EqBand")
-        fs = 8000
-        filter = EQFilter("myeq",fs,"(60 125 250 500 1000 2000 4000 8000)",1000)
-        print(f"fc = {filter.fc}")
-        freqs = filter.fc
-        def eqchange(i,val):
-            print(f"{i} -> {val}")
-        eqwidget = EqBank(root,freqs,eqchange)
-
-
-        root.mainloop()
 
     def cmd_widget_param(self,args):
 

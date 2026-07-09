@@ -1,6 +1,5 @@
 from .FFTFilter import FFTFilter
-
-from .Filters import *
+import numpy as np
 
 class UnitFilter(FFTFilter):
     fc = 0
@@ -21,5 +20,4 @@ class UnitFilter(FFTFilter):
 
     @classmethod
     def from_instance(cls, other):
-        print(type(other.name))
-        return cls(other.name + "cpy", other.fs,other.frame_size)
+        return cls(other.name  , other.fs,other.frame_size)
