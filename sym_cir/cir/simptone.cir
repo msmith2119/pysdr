@@ -1,0 +1,4 @@
+C1 in out 1e-08
+R1 in out r1
+R2 out n1 r2
+C2 n1 gnd 2e-08

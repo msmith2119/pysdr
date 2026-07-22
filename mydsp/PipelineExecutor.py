@@ -1,6 +1,7 @@
 import threading
 
 import numpy as np
+import time
 
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
@@ -11,6 +12,7 @@ class PipelineExecutor(threading.Thread):
     src = None
     sink = None
     filter_banks = []
+    profile_data = []
 
     def __init__(self,pipeline):
         super().__init__()
@@ -48,13 +50,18 @@ class PipelineExecutor(threading.Thread):
                 if filt.name == fname:
                     value =getattr(filt, pname)
                     return value
-
+    def get_filter_profile(self,fname):
+        for row in self.filter_banks:
+            for filt in row:
+                if filt.name == fname:
+                    return filt.profile_data
     def run(self):
 
         self.running = True
         self.sink.start()
         while self.running:
             block = self.src.getMultiFrame()
+            start = start = time.perf_counter()
             if block is None:
                 break
             cols = []
@@ -72,6 +79,8 @@ class PipelineExecutor(threading.Thread):
 
 
             if len(cols) > 0 :
+                elapsed = time.perf_counter() - start
+                self.profile_data.append(elapsed)
                 self.sink.writeFrame(np.column_stack(cols))
 
 

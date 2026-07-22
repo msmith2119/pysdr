@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.fftpack import fft, ifft
+import time
+
+from scipy.signal import lfilter
 
 from mydsp.Utils import plot_array
 
@@ -15,10 +18,12 @@ class IIRFilter:
         self.fs = fs
         self.a = a
         self.b = b
-        self.m = max(a.max_index(),b.max_index())
+        self.m = max(len(a),len(b))
         self.N = frame_size
         self.xprev = np.zeros(self.m)
         self.yprev = np.zeros(self.m)
+        self.profile_data = []
+        self.zi = np.zeros(max(len(a), len(b)) - 1)
 
     def doFrame(self,y):
 
@@ -26,6 +31,25 @@ class IIRFilter:
         if y is None:
             return None
 
+        #start = time.perf_counter()
+
+        yout, self.zi = lfilter(
+            self.b,
+            self.a,
+            y,
+            zi=self.zi
+        )
+        #elapsed = time.perf_counter() - start
+        #self.profile_data.append(elapsed)
+        return yout
+
+
+    def doFrame2(self,y):
+
+
+        if y is None:
+            return None
+        start = time.perf_counter()
         xall = np.concatenate((self.xprev, y))
         yall = np.concatenate((self.yprev, np.zeros(self.N)))
 
@@ -36,11 +60,11 @@ class IIRFilter:
             s = 0.0
 
             # Feedforward
-            for k in self.b.keys():
+            for k in  range(len(self.b)):
                 s += self.b[k] * xall[idx - k]
 
             # Feedback
-            for k in self.a.keys():
+            for k in  range(len(self.a)):
                 if k == 0:
                     continue
                 s -= self.a[k] * yall[idx - k]
@@ -49,10 +73,9 @@ class IIRFilter:
 
         self.xprev = y[self.N-self.m:]
         self.yprev = yall[-self.m:]
-
+        elapsed = time.perf_counter() - start
+        self.profile_data.append(elapsed)
         return yall[self.m:]
-
-
 
     def plot_impulse(self):
 
@@ -106,7 +129,7 @@ class IIRFilter:
         plt.title('Frequency Response of the Impulse Response')
         plt.xlabel('Frequency (Hz)')
         plt.ylabel('Magnitude (dB)')
-
+        plt.xscale('log')
         plt.grid(True)
         plt.xlim([-self.fs*fa / 2, self.fs*fa / 2])  # Limiting x-axis to show
         plt.ylim(ymin, ymax)

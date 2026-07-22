@@ -9,6 +9,7 @@ from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
 from mydsp.EQFilter import EQFilter
+from mydsp.NullSource import NullSource
 from ui.EqBand import EqBand
 from ui.EqWidget import EqWidget
 from mydsp.Utils import parse_argv
@@ -51,6 +52,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'set_dev_param':self.cmd_set_dev_param,
             'widget':self.cmd_widget_param,
             'set_pipeline_param':self.cmd_set_pipeline_param,
+            'get_profile':self.cmd_get_pipeline_profile,
             'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
             'run':self.cmd_run_pipeline,
@@ -67,7 +69,10 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         dsl_globals.set_context(self)
 
     def cmd_test(self,args):
-        return
+
+      src = NullSource("ntest",1000,1)
+      f = src.getMultiFrame()
+      print(f)
 
 
     def cmd_widget_param(self,args):
@@ -108,11 +113,14 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         for param in params:
 
             cval = self.pipeline_thread.get_filter_param(name, param.name)
+
+            resolution = (param.max-param.min)/100.0
             SliderControl(
                 root,
                 param.name,
                 param.min,
                 param.max,
+                resolution,
                 cval,
                 partial(value_changed, param.name)
             )
@@ -134,7 +142,6 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         name = eqfilter.name
         pname = "dbgain"
         def eqchange(i, val):
-            print(f"{i} -> {val}")
             value = f"{i}:{val}"
             self.pipeline_thread.set_filter_param(name, pname, value)
 
@@ -192,6 +199,12 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         self.pipeline_thread.set_filter_param(parts[0],parts[1],value)
 
 
+    def cmd_get_pipeline_profile(self,args):
+        name = args[0]
+        data = self.pipeline_thread.get_filter_profile(name)
+        print(np.mean(data))
+        total = np.mean(self.pipeline_thread.profile_data)
+        print(f"Total pipleline delay = {total}")
 
     def cmd_show(self, args):
         if len(args) != 1:
@@ -213,6 +226,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             src = self.pipelines[name]['src']
             sink = self.pipelines[name]['sink']
             thefilters = self.pipelines[name]['filters']
+
             print(f"Input src {src.summary()}")
             print(f"Output sink {sink.summary()}")
             #print(*[f.name for f in thefilters])

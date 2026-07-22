@@ -28,20 +28,19 @@ class NoiseSource:
         noise_type: NoiseType,
         amplitude: float,
         frame_size: int,
-        num_channels: int,
-        num_frames=0
+        num_channels: int
+
 
     ):
         self.noise_type = noise_type
         self.amplitude = float(amplitude)
         self.frame_size = int(frame_size)
         self.num_channels = int(num_channels)
-        self.num_frames = int(num_frames)
-        self.current_frame = 0
 
 
 
-        self.summary_text = f"Noise Source {self.noise_type} frame_size={self.frame_size} amplitude={self.amplitude} num_channels={self.num_channels} num_frames={self.num_frames}"
+
+        self.summary_text = f"Noise Source {self.noise_type} frame_size={self.frame_size} amplitude={self.amplitude} num_channels={self.num_channels} "
     def getFrame(self):
         """
         Returns
@@ -66,18 +65,10 @@ class NoiseSource:
 
     def getMultiFrame(self):
 
-        if  self.num_frames > 0 :
-            if self.current_frame < self.num_frames:
-              self.current_frame += 1
-              return self.getFrame()
-            else:
-                return None
-
-
         return self.getFrame()
 
     def close(self):
-        print("Closing Noise Source")
+        return
 
     def summary(self):
         return self.summary_text

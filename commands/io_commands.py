@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 from mydsp.MorseCodeSource import MorseCodeSource
+from mydsp.NullSource import NullSource
 from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
@@ -66,6 +67,8 @@ class IOCommands:
             return self.gen_morsesource(name,params)
         elif stype == "RtlFile":
             return self.gen_rtlsource(name,params)
+        elif stype == "Null":
+            return self.gen_nullsource(name,params)
         else :
             MyLogger.error(f"Unknown source type: {stype}")
             return 1
@@ -233,7 +236,7 @@ class IOCommands:
 
         amplitude = float(params['amplitude'])
 
-        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels,num_frames)
+        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels)
 
         self.sources[name] = src
         print(f"Source {name} created")
@@ -313,6 +316,35 @@ class IOCommands:
 
 
         src = RtlFileSource(path,frame_size)
+
+        self.sources[name] = src
+        print(f"Source {name} created")
+        return 0
+
+    def gen_nullsource(self,name,param_str):
+
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("cmd_noise_source: frame_size parameter  not defined")
+                return 1
+
+        num_channels = int(params.get('num_channels', 1))
+        if 'num_channels' not in params:
+            num_channels = get_context().vars.get('num_channels', None)
+            if num_channels is None:
+                print("cmd_noise_source: num_channels parameter  not defined")
+                return 1
+
+        src = NullSource(name,frame_size,num_channels)
 
         self.sources[name] = src
         print(f"Source {name} created")

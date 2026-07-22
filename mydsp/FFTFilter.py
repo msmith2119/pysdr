@@ -4,7 +4,7 @@ from scipy.fftpack import fft, ifft
 
 from mydsp.SigClasses import Signal
 from mydsp.Utils import create_ola_function
-
+import time
 
 class FFTFilter:
     name = None
@@ -13,8 +13,8 @@ class FFTFilter:
     prevFrame = np.zeros(1)
     prevResult = np.zeros(1)
     envelope = np.zeros(1)
-
-
+    profile_data = []
+    doProfile = False
     def reset(self):
 
         self.prevFrame = np.zeros(1)
@@ -58,7 +58,7 @@ class FFTFilter:
         return y
 
     def doFrame(self,frame):
-
+      #  start = time.perf_counter()
         if frame is None :
             return self.prevResult
         M = self.overlap
@@ -80,6 +80,8 @@ class FFTFilter:
 # This is the first frame
         if prev_result_size == 1:
             return None
+       # elapsed = time.perf_counter() - start
+     #   self.profile_data.append(elapsed)
         return yout
 
     def fft_convolution(self,yin):

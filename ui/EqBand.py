@@ -10,8 +10,8 @@ class EqBand:
             parent,
             uid,
             label,
-            minimum,
             maximum,
+            minimum,
             initial,
             callback):
 
@@ -37,8 +37,8 @@ class EqBand:
         #
         self.slider = tk.Scale(
             self.frame,
-            from_=maximum,          # reverse so max is at top
-            to=minimum,
+            from_=minimum,          # reverse so max is at top
+            to=maximum,
             orient=tk.VERTICAL,
             showvalue=False,
             length=250,
@@ -56,6 +56,9 @@ class EqBand:
             self._on_release
         )
 
+        self.slider.bind("<Button-4>", self._on_mousewheel_up)
+        self.slider.bind("<Button-5>", self._on_mousewheel_dn)
+        self.slider.bind("<Enter>", self._enter)
         #
         # Band label
         #
@@ -75,3 +78,49 @@ class EqBand:
 
     def _on_release(self, event):
         self.callback(self.slider.get())
+
+    def _enter(self, event):
+        self.active = True
+
+    def _leave(self, event):
+        self.active = False
+
+    def _on_mousewheel_up(self, event):
+        if not self.active:
+            return
+
+        value = self.slider.get()
+
+
+        value += self.slider.cget("resolution")
+
+
+        # clamp to range
+        value = min(
+            self.slider.cget("from"),
+            max(self.slider.cget("to"), value)
+        )
+
+        self.slider.set(value)
+        self.value_var.set(f"{value:.1f}")
+        self.callback(value)
+
+    def _on_mousewheel_dn(self, event):
+        if not self.active:
+            return
+
+
+        value = self.slider.get()
+
+
+        value -= self.slider.cget("resolution")
+
+        # clamp to range
+        value = max(
+            self.slider.cget("to"),
+            min(self.slider.cget("from"), value)
+        )
+
+        self.slider.set(value)
+        self.value_var.set(f"{value:.1f}")
+        self.callback(value)

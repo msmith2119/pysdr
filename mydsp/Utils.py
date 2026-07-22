@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -66,6 +66,15 @@ def create_ola_function( M, N):
             return hanning_window[n - M + 2 * N]
 
     return window_function
+
+def store_numpy_array(a,path):
+    with open(path, "w") as f:
+        json.dump(a.tolist(), f)
+
+def load_numpy_array(path):
+    with open(path, "r") as f:
+        a = np.array(json.load(f))
+        return a
 
 def create_brick(N,m):
     z = np.ones(N)

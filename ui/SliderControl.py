@@ -9,6 +9,7 @@ class SliderControl:
             label,
             minval,
             maxval,
+            resolution,
             initial,
             callback):
 
@@ -35,7 +36,7 @@ class SliderControl:
             orient=tk.HORIZONTAL,
             showvalue=False,
             sliderlength=50,
-            resolution=0.1,
+            resolution=resolution,
             width=30,
             length=300,
             command=self._on_drag
@@ -54,7 +55,9 @@ class SliderControl:
             "<ButtonRelease-1>",
             self._on_release
         )
-
+        self.slider.bind("<Button-4>", self._on_mousewheel_up)
+        self.slider.bind("<Button-5>", self._on_mousewheel_dn)
+        self.slider.bind("<Enter>", self._enter)
         tk.Label(
             frame,
             textvariable=self.value_var,
@@ -68,6 +71,8 @@ class SliderControl:
 
         frame.columnconfigure(1, weight=1)
 
+
+
     def _on_drag(self, value):
         """Update displayed value while dragging."""
         self.value_var.set(f"{float(value):.1f}")
@@ -75,4 +80,54 @@ class SliderControl:
     def _on_release(self, event):
         """Notify caller when user releases mouse."""
         value = self.slider.get()
+        self.callback(value)
+
+    def _enter(self, event):
+        self.active = True
+
+    def _leave(self, event):
+        self.active = False
+
+    def _on_mousewheel_up(self, event):
+        if not self.active:
+            return
+
+
+        value = float(self.slider.get())
+
+        delta = self.slider.cget("resolution")*2.0
+
+        value +=delta
+
+        # clamp to range
+        value = min(
+            self.slider.cget("to"),
+            max(self.slider.cget("from"), value)
+        )
+
+
+
+        self.slider.set(value)
+
+        self.value_var.set(f"{value:.1f}")
+        self.callback(value)
+
+    def _on_mousewheel_dn(self, event):
+        if not self.active:
+            return
+
+
+        value = self.slider.get()
+        delta = self.slider.cget("resolution")*2.0
+
+        value -= delta
+
+        # clamp to range
+        value = min(
+            self.slider.cget("to"),
+            max(self.slider.cget("from"), value)
+        )
+
+        self.slider.set(value)
+        self.value_var.set(f"{value:.1f}")
         self.callback(value)

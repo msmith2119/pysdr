@@ -16,6 +16,7 @@ class SparseArray:
     Iteration:   O(N)
     """
 
+
     def __init__(self, default=0):
         self.default = default
         self._indices = []
@@ -105,6 +106,10 @@ class SparseArray:
             f"{i}:{v}" for i, v in zip(self._indices, self._values)
         )
         return f"SparseArray({{{items}}})"
+
+    def fromArray(self,a):
+        for i,v in enumerate(a):
+            self[i] = v
 
     def save(self, filename):
         """Save the SparseArray to a file."""

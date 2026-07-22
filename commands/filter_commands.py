@@ -11,13 +11,16 @@ from mydsp.BPFilter  import BPFilter
 from mydsp.EQFilter import EQFilter
 from mydsp.NoiseAddFilter import NoiseAddFilter
 from mydsp.AnalogFilter import AnalogFilter
+from mydsp.RCFilter import RCFilter
+from mydsp.ToneControlFilter import ToneControlFilter
+
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Unit"]
 
 class FilterCommands:
 
@@ -126,5 +129,6 @@ class FilterCommands:
         fa = params.get('max',1.0)
         filter = self.filters[name]
         filter.plotFFT(fa)
+        filter.plot_impulse()
         plt.show()
         return 0
