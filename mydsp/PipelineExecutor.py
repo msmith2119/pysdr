@@ -60,7 +60,63 @@ class PipelineExecutor(threading.Thread):
         self.running = True
         self.sink.start()
         while self.running:
-            block = self.src.getMultiFrame()
+            block = self.src.getFrame()
+
+            start = start = time.perf_counter()
+            if block is None:
+                break
+            cols = []
+
+            for i in range(self.channels):
+                frame = block[:,i]
+
+                for j in range(len(self.filters)):
+
+                    frame = self.filter_banks[i][j].doFrame(frame)
+
+                    if frame is None:
+                        break
+                if frame is not None:
+                    cols.append(frame)
+
+
+            if len(cols) > 0 :
+                elapsed = time.perf_counter() - start
+                self.profile_data.append(elapsed)
+
+                f = np.column_stack(cols)
+
+                self.sink.writeFrame(f)
+
+
+
+        if self.running:
+            for k in range(len(self.filters)):
+
+                colvec = []
+                for i in range(self.channels):
+
+                    y = None
+                    for j in range(i,len(self.filters)):
+                        y = self.filter_banks[i][j].doFrame(y)
+
+                    if y is not None:
+                        colvec.append(y)
+
+                if len(colvec) > 0 :
+                    self.sink.writeFrame(np.column_stack(colvec))
+
+
+
+        self.src.close()
+        self.sink.close()
+
+    def run2(self):
+
+        self.running = True
+        self.sink.start()
+        while self.running:
+            block = self.src.getFrame()
             start = start = time.perf_counter()
             if block is None:
                 break
@@ -105,7 +161,6 @@ class PipelineExecutor(threading.Thread):
 
         self.src.close()
         self.sink.close()
-
     def stop(self):
         self.running = False
 

@@ -3,22 +3,28 @@ import os
 import tkinter as tk
 from functools import partial
 from commands import dsl_globals
+from commands.dsl_globals import get_context
 from commands.filter_commands import FilterCommands
 from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
+from mydsp import LPFilter
+from mydsp.SincFilter import SincFilter
+from mydsp.SineWaveSource import SineWaveSource
 from mydsp.EQFilter import EQFilter
 from mydsp.NullSource import NullSource
+from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
 from ui.EqWidget import EqWidget
-from mydsp.Utils import parse_argv
+from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number
 from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 import sys
+import math
 import numpy as np
-
+from scipy.fftpack import fft, ifft
 MyLogger.set_level(LogLevel.INFO)
 class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCommands):
     def __init__(self):
@@ -36,6 +42,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'vars':self.cmd_vars,
             'test':self.cmd_test,
             'filter': self.cmd_filter,
+            'decimator':self.cmd_decimator,
             'signal': self.cmd_signal,
             'source': self.cmd_input_src,
             'sources':self.cmd_sources,
@@ -70,9 +77,12 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
     def cmd_test(self,args):
 
-      src = NullSource("ntest",1000,1)
-      f = src.getMultiFrame()
-      print(f)
+        src = self.sources['myrtl']
+        block = src.getFrame()
+        #print(block)
+        print(block)
+        frame = block[:,0]
+        print(frame)
 
 
     def cmd_widget_param(self,args):
@@ -103,6 +113,7 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             return
 
         filter = self.filters[name]
+        print(filter)
         params = filter.getParameters()
 
         def value_changed(pname, value):

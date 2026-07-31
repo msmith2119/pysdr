@@ -21,8 +21,10 @@ class Pot:
         i1 = self.n1.value
         i2 = self.n2.value
         i3 = self.n3.value
+        print(self.var)
         g1 = 1/(self.R*self.var)
         g2 = 1/(self.R*(1-self.var))
+        print(f"g1: {g1} g2: {g2}")
         g = 1/(self.R*self.var)
         if i1  > -1 and i2  > -1:
             ymatrix[i1,i2] -= g1

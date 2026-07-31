@@ -1,2 +1,2 @@
-P1 in int out 1k a
-R1 int gnd 1k
+P1 in n1 out 2 0.5
+C1 n1 gnd 1

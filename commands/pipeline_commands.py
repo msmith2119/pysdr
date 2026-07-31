@@ -36,7 +36,7 @@ class PipelineCommands:
         thefilters =[]
         current_source = self.sources[src]
         for fname in filter_names:
-            filter_obj = self.filters.get(fname)
+            filter_obj = self.filters.get(fname,self.decimators.get(fname))
             if not filter_obj:
                 print(f"Filter '{fname}' not found.")
                 return 1

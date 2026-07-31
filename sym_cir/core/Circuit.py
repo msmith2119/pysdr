@@ -41,7 +41,9 @@ class Circuit:
         self.Y = Matrix.zeros(n,n)
 
         for device in self.devices:
+
            device.stamp(self.Y)
+
 
     def getTwoPortY(self,inp,out):
 

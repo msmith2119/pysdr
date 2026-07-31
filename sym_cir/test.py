@@ -1,27 +1,67 @@
 
 from sympy import *
-
+from zmq import devices
+from scipy import signal
 from mydsp.Utils import store_numpy_array
 from sym_cir.core.SpiceParser import SpiceParser
 import numpy as np
 
 parser = SpiceParser()
 
+circuit = parser.parseFile("cir/tone.cir")
 
-
-circuit = parser.parseFile("cir/simptone.cir")
 circuit.stamp_devices()
+#print(circuit.Y)q
+#Y = circuit.Y
+s,a1,a2 = symbols('s a1 a2')
+print(circuit.nodes['in'].value)
+print(circuit.nodes['out'].value)
+#for i in range(Y.rows):
+#    for j in range(Y.cols):
+#        if Y[i,j] != 0 :
+#            print(f"Y[{i},{j}] = {Y[i,j]}")
+
+Y = circuit.Y
+
+print(Y.det())
+#Z = Y.inv()
+#zz = Z.col(0)
+#print(zz[0])
+#print(zz[4])
+#a = zz[4]/zz[0]
+#print(a)
+#N,D = fraction(cancel(together(a)))
+#print(N)
+#print(D)
+
+
+#print(D)
+input("Press Enter to continue...")
+
 y = circuit.getTwoPortY("in","out")
+fs = 8000.0
 
 #print(N(circuit.Y,5))
 T = circuit.getTwoPortT("in","out")
 #print(N(T,5))
 a  = 1/T[0,0]
+print(a)
+input("Press Enter to continue...")
 r,c,T,s,z = symbols('r c T s z')
 #print(cancel(together(a)))
 N,D = fraction(cancel(together(a)))
 print(N)
 print(D)
+a = Poly(D,s).all_coeffs()
+b = Poly(N,s).all_coeffs()
+print(a)
+print(b)
+print("*******************8")
+bb_z, aa_z = signal.bilinear(b, a, fs)
+print(bb_z)
+print(aa_z)
+store_numpy_array(aa_z,"../filters/tone.a")
+store_numpy_array(bb_z,"../filters/tone.b")
 input("Press Enter to continue...")
 H = N/D
 print(H)
@@ -56,7 +96,7 @@ print(a1)
 print(b1)
 
 input("Press Enter to continue...")
-print(a[0])
+
 subs = {
     r: 1000,
     c: 1e-6,
@@ -67,32 +107,10 @@ aa = [expr.subs(subs) for expr in a]
 bb = [expr.subs(subs) for expr in b]
 #coeffs_b = np.array([float(x) for x in bb])
 
-
+aa = [float(e)*1e+37 for e in aa]
+bb = [float(e)*1e+37 for e in bb]
 print(aa)
 print(bb)
+store_numpy_array(aa,"../filters/tone.a")
+store_numpy_array(bb,"../filters/tone.b")
 
-#store_numpy_array(coeffs_a,"../filters/rc.a")
-#store_numpy_array(coeffs_b,"../filters/rc.b")
-
-#c1 = 1e-08
-#c2 = 2e-8
-print(bb[4])
-a = np.zeros(5)
-b = np.zeros(5)
-r1 = 50000.0
-r2 = 50000.0
-
-a[0] = 4.0e-8*r1*r2 + 0.000375*r1 + 0.00025*r2 + 0.78125
-a[1] =0.00075*r1 + 0.0005*r2 + 3.125
-a[2] =-8.0e-8*r1*r2 + 4.6875
-a[3] =-0.00075*r1 - 0.0005*r2 + 3.125
-a[4]= 4.0e-8*r1*r2 - 0.000375*r1 - 0.00025*r2 + 0.78125
-
-b[0] =4.0e-8*r1*r2 + 0.000125*r1 + 0.00025*r2 + 0.78125
-b[1] =0.00025*r1 + 0.0005*r2 + 3.125
-b[2] =-8.0e-8*r1*r2 + 4.6875
-b[3] =-0.00025*r1 - 0.0005*r2 + 3.125
-b[4] =4.0e-8*r1*r2 - 0.000125*r1 - 0.00025*r2 + 0.78125
-
-store_numpy_array(a,"../filters/simptone.a")
-store_numpy_array(b,"../filters/simptone.b")

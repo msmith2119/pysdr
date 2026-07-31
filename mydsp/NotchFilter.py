@@ -12,19 +12,19 @@ class NotchFilter(FFTFilter):
     def __init__(self, name, fs, fc, fbw, frame_size):
 
         self.name = name
-        self.fs = to_number(fs)
+
         self.fc = to_number(fc)
         self.fbw = to_number(fbw)
-        self.frame_size = to_number(frame_size)
-        percentOL = 0.2
-        self.overlap = int(percentOL * self.frame_size)
+
+
+        super().__init__(fs,frame_size,False)
         self.calc()
 
 
 
 
 
-    def getParamaters(self):
+    def getParameters(self):
         return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2),
                 Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0)]
 

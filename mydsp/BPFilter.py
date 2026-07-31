@@ -12,16 +12,15 @@ class BPFilter(FFTFilter):
 
 
 
-    def __init__(self, name, fs, fc, fbw,sbg, frame_size):
+    def __init__(self, name, fs, fc, fbw,sbg, frame_size,isComplex="False"):
 
         self.name = name
-        self.fs = to_number(fs)
+
         self.fc = to_number(fc)
         self.fbw = to_number(fbw)
         self.sbg = to_number(sbg)
-        self.frame_size = to_number(frame_size)
-        percentOL = 0.2
-        self.overlap = int(percentOL * self.frame_size)
+
+        super().__init__(fs,frame_size,isComplex)
         self.calc()
 
 
@@ -65,4 +64,4 @@ class BPFilter(FFTFilter):
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name , other.fs, other.fc, other.fbw,other.sbg,other.frame_size)
+        return cls(other.name , other.fs, other.fc, other.fbw,other.sbg,other.frame_size,other.isComplex)

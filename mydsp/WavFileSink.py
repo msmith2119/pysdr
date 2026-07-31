@@ -3,7 +3,7 @@ import numpy as np
 
 class WavFileSink:
     description = "Wave File PCM audio sink path=filepath, sample_rate=fsample,frame_size=frame_size num_channels=num_channels"
-    def __init__(self, file_name, num_channels,frame_size, sample_rate=48000):
+    def __init__(self, file_name, num_channels,frame_size, sample_rate,isComplex=False):
         """
         Create a WAV file sink that writes float frames (-1..1) as 16-bit PCM.
 
@@ -16,20 +16,29 @@ class WavFileSink:
         self.frame_size = frame_size
         self.sample_rate = sample_rate
         self.num_channels = num_channels  # mono for now
-
+        self.isComplex = isComplex
+        if self.isComplex:
+            self.num_channels = 2
         # Open the WAV file for writing
         self.wav = wave.open(file_name, 'wb')
+
         self.wav.setnchannels(self.num_channels)
         self.wav.setsampwidth(2)  # 16-bit
         self.wav.setframerate(sample_rate)
+
         self.summary_text = f"Wave File Sink file={self.file_name} frame_size={self.frame_size} sample_rate={sample_rate} num_channels={self.num_channels}"
     def writeFrame(self, frame):
         """Write one frame (NumPy array of floats in range -1..1) to file."""
        # frame = np.asarray(frame, dtype=np.float32)
+        if self.isComplex:
+            vals = frame[:,0]
+           # print(type(vals[0]))
+            frame = np.column_stack([vals.real,vals.imag])
+         #   print(frame.shape)
 
         # Clip to avoid overflow if DSP chain exceeds ±1
         np.clip(frame, -1.0, 1.0, out=frame)
-
+        #print(frame)
         # Convert float → int16 PCM
         int_samples = np.round(frame * 32767.0).astype(np.int16)
 

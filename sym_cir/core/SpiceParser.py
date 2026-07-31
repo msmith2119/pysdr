@@ -115,7 +115,7 @@ class SpiceParser:
             return None
 
     def parseP(self,line):
-        match = re.match(r"^(P\w+)\s+(\w+)\s+(\w+)\s+(\w+)\s+(\S+)\s+(\w+)",line)
+        match = re.match(r"^(P\w+)\s+(\w+)\s+(\w+)\s+(\w+)\s+(\S+)\s+(\S+)",line)
         if match:
             name = match.group(1)
             nn1 = match.group(2)
@@ -129,6 +129,7 @@ class SpiceParser:
             n3 = self.circuit.getNode(nn3)
             val = SpiceParser.parse_value(vv)
             parm = SpiceParser.parse_value(param)
+            print(f"parm={parm}")
             r = Pot(name,n1,n2,n3,val,parm)
             return r
         else:

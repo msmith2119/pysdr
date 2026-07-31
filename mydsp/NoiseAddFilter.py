@@ -19,7 +19,7 @@ class NoiseAddFilter(FFTFilter):
 
         self.prevResult = np.zeros(0)
         self.summary_text = f"Unit Filter @  N={frame_size}"
-        self.noise = NoiseSource(NoiseType.WHITE,amplitude,frame_size,1,0)
+        self.noise = NoiseSource(NoiseType.WHITE,amplitude,frame_size,1)
 
     def doFrame(self,frame):
 
@@ -33,7 +33,7 @@ class NoiseAddFilter(FFTFilter):
 
     def set_amplitude(self,amplitude):
         self.amplitude = amplitude
-        self.noise = NoiseSource(NoiseType.WHITE, self.amplitude, self.frame_size, 1, 0)
+        self.noise = NoiseSource(NoiseType.WHITE, self.amplitude, self.frame_size, 1)
 
     def summary(self):
         return f"NoiseAddFilter: amplitude={self.amplitude}, fs={self.fs}, frame_size={self.frame_size}"

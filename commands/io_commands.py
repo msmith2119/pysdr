@@ -2,9 +2,10 @@ import re
 import os
 from pathlib import Path
 
-
+from mydsp import SineWaveSource
 from mydsp.MorseCodeSource import MorseCodeSource
 from mydsp.NullSource import NullSource
+from mydsp.SineWaveSource import SineWaveSource
 from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
@@ -23,6 +24,7 @@ from mydsp.Utils import to_number
 noise_params = ['amplitude']
 morse_params  = ['msg_file','amplitude','wpm','tone']
 sndcard_params = ['sample_rate','num_channels','frame_size']
+sinewave_params = ['sample_rate','num_channels','frame_size','frequency','amplitude']
 class IOCommands:
 
 
@@ -69,6 +71,8 @@ class IOCommands:
             return self.gen_rtlsource(name,params)
         elif stype == "Null":
             return self.gen_nullsource(name,params)
+        elif stype == "SineWave":
+            return self.gen_sinewavesource(name,params)
         else :
             MyLogger.error(f"Unknown source type: {stype}")
             return 1
@@ -235,8 +239,9 @@ class IOCommands:
                 return 1
 
         amplitude = float(params['amplitude'])
-
-        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels)
+        num_frames = int(params.get('num_frames','0'))
+        isComplex =  params.get("complex","False") == "True"
+        src  = NoiseSource(NoiseType.WHITE,amplitude,frame_size,num_channels,num_frames,isComplex)
 
         self.sources[name] = src
         print(f"Source {name} created")
@@ -321,6 +326,42 @@ class IOCommands:
         print(f"Source {name} created")
         return 0
 
+    def gen_sinewavesource(self,name,param_str):
+
+
+        items = param_str.split(',')
+        params = {}
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+        frame_size = int(params.get('frame_size', 1))
+        if 'frame_size' not in params:
+            frame_size = get_context().vars.get('frame_size', None)
+            if frame_size is None:
+                print("cmd_noise_source: frame_size parameter  not defined")
+                return 1
+
+        num_channels = int(params.get('num_channels', 1))
+        if 'num_channels' not in params:
+            num_channels = get_context().vars.get('num_channels', None)
+            if num_channels is None:
+                print("cmd_sinewave_source: num_channels parameter  not defined")
+                return 1
+
+        sample_rate = int(params.get('sample_rate', 1))
+        if 'sample_rate' not in params:
+            sample_rate = get_context().vars.get('sample_rate', None)
+            if sample_rate is None:
+                print("cmd_sine_source: sample_rate parameter  not defined")
+                return 1
+        frequency = float(params.get('frequency', 1))
+        amplitude = float(params.get('amplitude', 1))
+        src = SineWaveSource(name,sample_rate,frame_size,num_channels,frequency,amplitude)
+        self.sources[name] = src
+        print(f"Source {name} created")
+        return 0
+
     def gen_nullsource(self,name,param_str):
 
 
@@ -349,7 +390,6 @@ class IOCommands:
         self.sources[name] = src
         print(f"Source {name} created")
         return 0
-
     def gen_wav_sink(self,name,param_str):
 
 
@@ -391,8 +431,10 @@ class IOCommands:
                 print("frame_size parameter  not defined")
                 return None
 
-
-        sink = WavFileSink(path, num_channels, frame_size, sample_rate)
+        isComplex =  params.get("complex","False") == "True"
+        if isComplex:
+            num_channels = 2
+        sink = WavFileSink(path, num_channels, frame_size, sample_rate,isComplex)
 
         return sink
 

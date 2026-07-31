@@ -169,7 +169,7 @@ class MorseCodeSource:
         self.curpos += len(self.cspace)
 
 
-    def getMultiFrame(self):
+    def getFrame(self):
 
 
         frame = np.zeros(self.frame_size, dtype=self.y.dtype)

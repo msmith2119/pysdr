@@ -3,7 +3,7 @@ from pathlib import Path
 import json
 import numpy as np
 import matplotlib.pyplot as plt
-
+from scipy.fftpack import fft, ifft
 
 def to_number(x):
     try:
@@ -12,6 +12,39 @@ def to_number(x):
     except (ValueError, TypeError):
         return 0
 
+def plotFFT(y,fs):
+
+
+    N = len(y)
+    Ny = int(N/2)
+
+
+    # Compute the FFT of the impulse response
+    #fft_values = np.fft.fft(impulse_response)
+    fft_values =  fft(y)
+    # Frequency axis (including negative frequencies)
+    freq = np.fft.fftfreq(N, d=1 / fs)
+
+    # Convert FFT values to magnitude and then to dB scale
+    magnitude = np.abs(fft_values)
+    magnitude_db = 20 * np.log10(magnitude + 1e-10)  # Added small constant to avoid log(0)
+    xvals = np.ones(N)
+    xvals[:Ny] = freq[Ny:]
+    xvals[Ny:] = freq[:Ny]
+    yvals = np.ones(N)
+    yvals[:Ny] = magnitude_db[Ny:]
+    yvals[Ny:] = magnitude_db[:Ny]
+    #ymax = np.amax(yvals[Ny: Ny + m])
+    #ymin = np.amin(yvals[Ny:Ny + m])
+    # Plot the frequency response
+    plt.figure(figsize=(10, 6))
+    plt.plot(xvals, yvals)
+    plt.title('Frequency Response of the Impulse Response')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Magnitude (dB)')
+    plt.grid(True)
+    plt.xlim([-fs / 2, fs / 2])  # Limiting x-axis to show negative and positive frequencies
+    #plt.ylim(ymin, ymax)
 
 def resize_array(arr, N):
 
@@ -68,8 +101,12 @@ def create_ola_function( M, N):
     return window_function
 
 def store_numpy_array(a,path):
+    arr = a
+    if not isinstance(a, list):
+        arr=a.tolist()
+
     with open(path, "w") as f:
-        json.dump(a.tolist(), f)
+        json.dump(arr, f)
 
 def load_numpy_array(path):
     with open(path, "r") as f:

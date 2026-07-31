@@ -3,18 +3,24 @@ from matplotlib import pyplot as plt
 from scipy.fftpack import fft, ifft
 
 from mydsp.SigClasses import Signal
-from mydsp.Utils import create_ola_function
+from mydsp.Utils import create_ola_function, plot_array
 import time
 
 class FFTFilter:
-    name = None
-    fs = 0
-    filt = np.zeros(1)
-    prevFrame = np.zeros(1)
-    prevResult = np.zeros(1)
-    envelope = np.zeros(1)
-    profile_data = []
-    doProfile = False
+
+    def __init__(self,fs,frame_size,isComplex):
+
+        self.isComplex = bool(isComplex)
+        self.fs = fs
+        self.frame_size = frame_size
+        self.filt = np.zeros(1)
+        self.prevFrame = np.zeros(1)
+        self.prevResult = np.zeros(1)
+        self.envelope = np.zeros(1)
+        self.profile_data = []
+        self.doProfile = False
+        self.percentOL = 0.2
+        self.overlap = int(self.percentOL * self.frame_size)
     def reset(self):
 
         self.prevFrame = np.zeros(1)
@@ -64,8 +70,12 @@ class FFTFilter:
         M = self.overlap
         prev_result_size = self.prevResult.size
         if self.prevFrame.size == 1:  # first time in previous results set to zero
-            self.prevFrame = np.zeros(self.frame_size)
-            self.prevResult = np.zeros(self.frame_size)
+            if self.isComplex:
+                self.prevFrame = np.zeros(self.frame_size,dtype=complex)
+                self.prevResult = np.zeros(self.frame_size,dtype=complex)
+            else:
+                self.prevFrame = np.zeros(self.frame_size)
+                self.prevResult = np.zeros(self.frame_size)
         env = self.getEnvelope(self.frame_size + M, M)
         yin = frame
         if M != 0:
@@ -88,8 +98,11 @@ class FFTFilter:
 
         zo = fft(yin)
         z1 = zo * self.filt
-        yo = ifft(z1).real
-        return yo
+        yo = ifft(z1)
+        if self.isComplex:
+            return yo
+        else:
+            return yo.real
 
     def unitFrame(self, frame, hwin):
 

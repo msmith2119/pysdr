@@ -18,12 +18,12 @@ class EQFilter(FFTFilter):
 
 
         self.name = name
-        self.fs = to_number(fs)
+
         self.fc = np.array(fc.strip("()[]").split(), dtype=int)
         self.gain = np.array(gain.strip("()[]").split(), dtype=float)
         self.frame_size = to_number(frame_size)
-        percentOL = 0.2
-        self.overlap = int(percentOL * self.frame_size)
+
+        super().__init__(fs,frame_size,False)
         self.calc()
 
 

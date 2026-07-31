@@ -9,13 +9,14 @@ class HPFilter(FFTFilter):
     description = "HPfilter with parameters: fs=<sampling freq>, fc=<cuttof freq>, sbg=<stopband gain>, frame_size=<frame size>"
 
 
-    def __init__(self, name, fs, fc,sbg, frame_size):
+    def __init__(self, name, fs, fc,sbg, frame_size,isComplex="False"):
 
         self.name = name
         self.fs = to_number(fs)
         self.fc = to_number(fc)
         self.sbg = to_number(sbg)
-        self.frame_size = to_number(frame_size)
+
+        super().__init__(fs,frame_size,isComplex)
         self.calc()
 
 
@@ -35,8 +36,7 @@ class HPFilter(FFTFilter):
 
     def calc(self):
         self.size = 0
-        percentOL = 0.2
-        self.overlap = int(percentOL * self.frame_size)
+
 
         buffer_size = self.frame_size + self.overlap
         freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequencies for each bin
@@ -49,4 +49,4 @@ class HPFilter(FFTFilter):
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name , other.fs,other.fc,other.sbg,other.frame_size)
+        return cls(other.name , other.fs,other.fc,other.sbg,other.frame_size,other.isComplex)

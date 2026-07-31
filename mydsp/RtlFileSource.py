@@ -25,14 +25,15 @@ class RtlFileSource:
 
         src.close()
     """
-
+    description = "Source RtlFile <name> frame_size=<frame_size> path=<path>"
     def __init__(self, filename, frame_size):
         self.filename = filename
         self.frame_size = frame_size
         self.file = open(filename, "rb")
-        self.num_channels = 2
-    def getMultiFrame(self):
-        return self.getFrame()
+        self.num_channels = 1
+        self.summary_text = f"Rtl Source frame_size={self.frame_size}"
+
+
 
     def getFrame(self):
         """
@@ -61,15 +62,15 @@ class RtlFileSource:
         i = (raw[0::2] - 128.0) / 128.0
         q = (raw[1::2] - 128.0) / 128.0
 
-        return np.column_stack((i, q))
 
-    def getComplexFrame(self):
-        frame = self.getFrame()
+        col = i.astype(np.complex64) + 1j * q.astype(np.complex64)
 
-        if frame is None:
-            return None
+        f = np.column_stack([col])
 
-        return (frame[:, 0] + 1j * frame[:, 1]).astype(np.complex64)
+        return f
+
+
+
 
 
     def rewind(self):
@@ -82,6 +83,12 @@ class RtlFileSource:
             self.file.close()
             self.file = None
 
+
+
+    def summary(self):
+        return self.summary_text
+
+        """Return a summary of the IQ file."""
     def __enter__(self):
         return self
 

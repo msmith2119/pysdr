@@ -3,11 +3,12 @@ import numpy as np
 
 class WavFileSource:
     description = "Wave File PCM audio source path=filepath, frame_size=frame_size num_channels=num_channels"
-    def __init__(self, file_name, frame_size,loop):
+    def __init__(self, file_name, frame_size,loop,isComplex=False):
         self.file_name = file_name
         self.frame_size = frame_size
         self.wav = wave.open(file_name, 'rb')
         self.loop = loop
+        self.isComplex = isComplex
         self.num_channels = self.wav.getnchannels()
         self.sample_width = self.wav.getsampwidth()
         self.sample_rate = self.wav.getframerate()
@@ -81,31 +82,27 @@ class WavFileSource:
 
         return floats
 
-    def getComplexFrame(self):
-        """
-        Return block as complex64 array (IQ-style).
-
-        Mapping:
-            real = channel 0
-            imag = channel 1 (or 0 if mono)
-
-        Shape:
-            (block_size,)
-        """
+    def getFrame(self):
 
         frame = self.getMultiFrame()
 
-        if frame is None:
-            return None
+        if  self.isComplex:
+            return self.toComplexFrame(frame)
+
+        return  frame
+
+    def toComplexFrame(self,frame):
+
 
         real = frame[:, 0]
+        imag = frame[:, 1]
 
-        if self.num_channels >= 2:
-            imag = frame[:, 1]
-        else:
-            imag = np.zeros_like(real)
+        col = real.astype(np.complex64) + 1j * imag.astype(np.complex64)
+        cols = [(col)]
 
-        return real.astype(np.complex64) + 1j * imag.astype(np.complex64)
+        return np.column_stack(cols)
+
+
 
     def close(self):
         self.wav.close()

@@ -2,6 +2,7 @@
 import importlib
 import json
 import mydsp
+from mydsp.Decimator import Decimator
 from mydsp.NotchFilter import NotchFilter
 from mydsp.LPFilter import LPFilter
 from mydsp.UnitFilter import UnitFilter
@@ -13,6 +14,7 @@ from mydsp.NoiseAddFilter import NoiseAddFilter
 from mydsp.AnalogFilter import AnalogFilter
 from mydsp.RCFilter import RCFilter
 from mydsp.ToneControlFilter import ToneControlFilter
+from mydsp.SincFilter import SincFilter
 
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
@@ -20,11 +22,12 @@ from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","Unit"]
 
 class FilterCommands:
 
     filters = {}
+    decimators = {}
     def cmd_filter(self, args):
         if len(args) < 2:
             print("Usage: filter <type> <name> [params]")
@@ -70,6 +73,38 @@ class FilterCommands:
         print(f"Filter '{filter_name}' created.")
 
         return 0
+
+    def cmd_decimator(self,args):
+
+        param_str = " ".join(args[1:])
+        param_str = param_str.strip("[]")
+        name = args[0]
+        params = {}
+        params['name'] = name
+        pairs = [item.split('=') for item in param_str.split(',') if '=' in item]
+        for k, v in pairs:
+            params[k] = v
+        dec = Decimator(**params)
+        self.decimators[name] = dec
+        fs = get_context().vars.get('sample_rate',None)
+        if fs is None:
+            print("sample_rate not defined")
+        frame_size = get_context().vars.get('frame_size',None)
+        if frame_size is None:
+            print("frame_size not defined")
+
+        if fs is None  or frame_size is None:
+            print("Decimator : Unable to reset global parameters ")
+            return 0
+        factor = params.get('factor',None)
+        if factor is None:
+            print("Decimator : factor not defined")
+            return 0
+        fs_new = int(fs)/int(factor)
+        frame_size_new = int(int(frame_size)/int(factor))
+        get_context().vars['sample_rate']=fs_new
+        get_context().vars['frame_size']=frame_size_new
+        print(f"Decimator {name} created.")
 
 
     def cmd_filters(self, args):
@@ -129,6 +164,6 @@ class FilterCommands:
         fa = params.get('max',1.0)
         filter = self.filters[name]
         filter.plotFFT(fa)
-        filter.plot_impulse()
+        #filter.plot_impulse()
         plt.show()
         return 0
