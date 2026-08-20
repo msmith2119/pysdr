@@ -15,14 +15,16 @@ from mydsp.AnalogFilter import AnalogFilter
 from mydsp.RCFilter import RCFilter
 from mydsp.ToneControlFilter import ToneControlFilter
 from mydsp.SincFilter import SincFilter
-
+from mydsp.FMModFilter import FMModFilter
+from mydsp.FMDemodFilter import FMDemodFilter
+from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","Unit"]
 
 class FilterCommands:
 
@@ -108,11 +110,11 @@ class FilterCommands:
 
 
     def cmd_filters(self, args):
-        if not self.filters:
+        if not self.filters and not self.decimators:
             print("No Filters defined.")
             return 0
 
-        for name in self.filters.keys():
+        for name in  [*self.filters.keys(), *self.decimators.keys()]:
             print(f"- {name}")
         return 0
 

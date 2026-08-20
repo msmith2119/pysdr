@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy.fftpack import fft, ifft
-
+from mydsp.Utils import to_bool
 from mydsp.SigClasses import Signal
 from mydsp.Utils import create_ola_function, plot_array
 import time
@@ -10,7 +10,7 @@ class FFTFilter:
 
     def __init__(self,fs,frame_size,isComplex):
 
-        self.isComplex = bool(isComplex)
+        self.isComplex =    to_bool(isComplex)
         self.fs = fs
         self.frame_size = frame_size
         self.filt = np.zeros(1)

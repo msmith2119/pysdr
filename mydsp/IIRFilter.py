@@ -20,8 +20,6 @@ class IIRFilter:
         self.b = b
         self.m = max(len(a),len(b))
         self.N = frame_size
-        self.xprev = np.zeros(self.m)
-        self.yprev = np.zeros(self.m)
         self.profile_data = []
         self.zi = np.zeros(max(len(a), len(b)) - 1)
 
@@ -44,38 +42,6 @@ class IIRFilter:
         return yout
 
 
-    def doFrame2(self,y):
-
-
-        if y is None:
-            return None
-        start = time.perf_counter()
-        xall = np.concatenate((self.xprev, y))
-        yall = np.concatenate((self.yprev, np.zeros(self.N)))
-
-        for n in range(self.N):
-
-            idx = self.m + n
-
-            s = 0.0
-
-            # Feedforward
-            for k in  range(len(self.b)):
-                s += self.b[k] * xall[idx - k]
-
-            # Feedback
-            for k in  range(len(self.a)):
-                if k == 0:
-                    continue
-                s -= self.a[k] * yall[idx - k]
-
-            yall[idx] = s / self.a[0]
-
-        self.xprev = y[self.N-self.m:]
-        self.yprev = yall[-self.m:]
-        elapsed = time.perf_counter() - start
-        self.profile_data.append(elapsed)
-        return yall[self.m:]
 
     def plot_impulse(self):
 
@@ -94,7 +60,7 @@ class IIRFilter:
         plt.show()
 
 
-    def plotFFT(self,fa,stick=False):
+    def plotFFT(self,stick=False):
 
         N = self.N
         Ny = int(N/2)
@@ -107,7 +73,7 @@ class IIRFilter:
         fft_values = fft(y)
         # Frequency axis (including negative frequencies)
         freq = np.fft.fftfreq(N, d=1 / self.fs)
-        m = int(float(Ny)*fa)
+
         # Convert FFT values to magnitude and then to dB scale
         magnitude = np.abs(fft_values)
         magnitude_db = 20 * np.log10(magnitude + 1e-10)  # Added small constant to avoid log(0)
@@ -118,10 +84,9 @@ class IIRFilter:
         xvals[:Ny] = freq[Ny:]
         xvals[Ny:] = freq[:Ny]
         yvals = np.ones(N)
+
         yvals[:Ny] = magnitude_db[Ny:]
         yvals[Ny:] = magnitude_db[:Ny]
-        ymax = np.amax(yvals[Ny: Ny+m])
-        ymin = np.amin(yvals[Ny:Ny+m])
 
         # Plot the frequency response
         plt.figure(figsize=(10, 6))
@@ -131,6 +96,6 @@ class IIRFilter:
         plt.ylabel('Magnitude (dB)')
         plt.xscale('log')
         plt.grid(True)
-        plt.xlim([-self.fs*fa / 2, self.fs*fa / 2])  # Limiting x-axis to show
-        plt.ylim(ymin, ymax)
+        plt.xlim([-self.fs / 2, self.fs / 2])  # Limiting x-axis to show
+        #plt.ylim(ymin, ymax)
 

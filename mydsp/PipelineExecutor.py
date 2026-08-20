@@ -22,7 +22,7 @@ class PipelineExecutor(threading.Thread):
         self.sink = pipeline['sink']
         self.filters = pipeline['filters'] 
 
-        self.channels = self.src.num_channels
+        self.channels = self.src.get_num_channels()
         self.frame_size = self.src.frame_size
 
 
@@ -61,7 +61,6 @@ class PipelineExecutor(threading.Thread):
         self.sink.start()
         while self.running:
             block = self.src.getFrame()
-
             start = start = time.perf_counter()
             if block is None:
                 break
@@ -77,7 +76,7 @@ class PipelineExecutor(threading.Thread):
                     if frame is None:
                         break
                 if frame is not None:
-                    cols.append(frame)
+                     cols.append(frame)
 
 
             if len(cols) > 0 :

@@ -9,13 +9,13 @@ class LPFilter(FFTFilter):
     description = "LPfilter with parameters: fs=<sampling freq>, fc=<cuttof freq>, sbg=<stopband gain>, frame_size=<frame size>"
 
 
-    def __init__(self, name, fs, fc,sbg, frame_size,isComplex="False"):
+    def __init__(self, name, fs, fc,sbg, frame_size,gain=1.0,isComplex="False"):
 
         self.name = name
-
+        print(f"gain={gain}")
         self.fc = to_number(fc)
         self.sbg = to_number(sbg)
-
+        self.gain = to_number(gain)
         super().__init__(fs,frame_size,isComplex)
         self.calc()
 
@@ -43,11 +43,11 @@ class LPFilter(FFTFilter):
 
 
         # Pass everything with |f| <= fc
-        self.filt[np.abs(freqs) <= self.fc] = 1.0
+        self.filt[np.abs(freqs) <= self.fc] = 1.0*self.gain
 
     def summary(self):
-        return f"LP Filter @ {self.fc} Hz, frame_size={self.frame_size}, fs={self.fs}, fc={self.fc} , sbg={self.sbg}"
+        return f"LP Filter @ {self.fc} Hz, frame_size={self.frame_size}, fs={self.fs}, fc={self.fc} ,gain={self.gain}, sbg={self.sbg}, isComplex={self.isComplex}"
 
     @classmethod
     def from_instance(cls, other):
-        return cls(other.name , other.fs,other.fc,other.sbg,other.frame_size,other.isComplex)
+        return cls(other.name , other.fs,other.fc,other.sbg,other.frame_size,other.gain,other.isComplex)

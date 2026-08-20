@@ -83,7 +83,8 @@ class RtlFileSource:
             self.file.close()
             self.file = None
 
-
+    def get_num_channels(self):
+        return self.num_channels
 
     def summary(self):
         return self.summary_text

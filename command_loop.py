@@ -9,13 +9,16 @@ from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
-from mydsp import LPFilter
+from mydsp import WavFileSource
+from mydsp.OscillatorSource import OscillatorSource
+from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.SincFilter import SincFilter
 from mydsp.SineWaveSource import SineWaveSource
 from mydsp.EQFilter import EQFilter
 from mydsp.NullSource import NullSource
 from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
+from mydsp.WavFileSource import WavFileSource
 from ui.EqWidget import EqWidget
 from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number
 from ui.SliderControl import SliderControl
@@ -75,15 +78,26 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         }
         dsl_globals.set_context(self)
 
+
+
     def cmd_test(self,args):
 
-        src = self.sources['myrtl']
+        src = self.sources.get("mywav")
+        #filt = self.filters.get("mysinc")
+        #lpf = self.filters.get("mylpf")
+        #filt.plotFFT()
+        shifter = self.filters.get("myshift")
+        fs = src.sample_rate
         block = src.getFrame()
-        #print(block)
-        print(block)
+        block2 = src.getFrame()
         frame = block[:,0]
-        print(frame)
-
+        frame2 = block2[:,0]
+        fout = shifter.doFrame(frame)
+        fout2 = shifter.doFrame(frame2)
+        sample = fout2[:1000]
+        plot_array(sample)
+        plotFFT(fout2,fs,0,0)
+        plt.show()
 
     def cmd_widget_param(self,args):
 
@@ -227,6 +241,8 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
         if name  in self.filters:
             print(self.filters[name].summary())
             found = True
+        if name in self.decimators:
+            print(self.decimators[name].summary())
         if name in self.sources:
             print(self.sources[name].summary())
             found = True

@@ -60,7 +60,7 @@ class BPFilter(FFTFilter):
         self.filt[pass_mask] = 1.0
 
     def summary(self):
-        return f"BP Filter fc={self.fc} ,fbw={self.fbw} ,sbg={self.sbg} N={self.frame_size}, fs={self.fs}"
+        return f"BP Filter fc={self.fc} ,fbw={self.fbw} ,sbg={self.sbg} N={self.frame_size}, fs={self.fs}, isComplex={self.isComplex}"
 
     @classmethod
     def from_instance(cls, other):

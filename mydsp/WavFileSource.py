@@ -1,19 +1,23 @@
 import wave
 import numpy as np
 
+from mydsp.Utils import to_bool
+
 class WavFileSource:
-    description = "Wave File PCM audio source path=filepath, frame_size=frame_size num_channels=num_channels"
-    def __init__(self, file_name, frame_size,loop,isComplex=False):
-        self.file_name = file_name
+    Params = ["path","frame_size"]
+    description = "Wave File PCM audio source path=filepath, frame_size=frame_size"
+    def __init__(self, name,path, frame_size,loop="False",complex="False"):
+        self.name = name
+        self.file_name = path
         self.frame_size = frame_size
-        self.wav = wave.open(file_name, 'rb')
-        self.loop = loop
-        self.isComplex = isComplex
+        self.wav = wave.open(self.file_name, 'rb')
+        self.loop = to_bool(loop)
+        self.isComplex = to_bool(complex)
         self.num_channels = self.wav.getnchannels()
         self.sample_width = self.wav.getsampwidth()
         self.sample_rate = self.wav.getframerate()
         self.num_frames_total = self.wav.getnframes()
-        self.summary_text = f"Wave File Source file={self.file_name} frame_size={self.frame_size} sample_rate={self.sample_rate} num_channels={self.num_channels}"
+        self.summary_text = f"Wave File Source path={self.file_name} frame_size={self.frame_size} sample_rate={self.sample_rate} num_channels={self.num_channels}, isComplex={self.isComplex}, loop={self.loop}"
         if self.sample_width != 2:
             raise ValueError("Only 16-bit PCM WAV files are supported.")
 
@@ -86,6 +90,7 @@ class WavFileSource:
 
         frame = self.getMultiFrame()
 
+
         if  self.isComplex:
             return self.toComplexFrame(frame)
 
@@ -93,6 +98,8 @@ class WavFileSource:
 
     def toComplexFrame(self,frame):
 
+        if frame  is None:
+            return frame
 
         real = frame[:, 0]
         imag = frame[:, 1]
@@ -113,6 +120,10 @@ class WavFileSource:
         """Close the underlying WAV file."""
         self.wav.close()
 
+    def get_num_channels(self):
+        if self.isComplex:
+            return 1
+        return self.num_channels
 
     def summary(self):
         return self.summary_text
@@ -147,6 +158,7 @@ class WavFileSource:
 
         # convert raw -> float ndarray
         return raw
+
 
 # Example usage:
 if __name__ == "__main__":

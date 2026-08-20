@@ -12,13 +12,26 @@ def to_number(x):
     except (ValueError, TypeError):
         return 0
 
-def plotFFT(y,fs):
+def to_bool(c):
+        if isinstance(c, bool):
+            value = c
+        elif isinstance(c, str):
+            try:
+                value = {"true": True, "false": False}[c.strip().lower()]
+            except KeyError:
+                raise ValueError(f"Invalid boolean string: {c}")
+        else:
+            raise TypeError(f"Expected bool or str, got {type(c).__name__}")
+
+        return value
+def plotFFT(y,fs,fmin,fmax):
 
 
     N = len(y)
     Ny = int(N/2)
 
-
+    fmin = max(fmin,-fs/2.0)
+    fmax = min(fmax,fs/2.0)
     # Compute the FFT of the impulse response
     #fft_values = np.fft.fft(impulse_response)
     fft_values =  fft(y)
@@ -43,7 +56,10 @@ def plotFFT(y,fs):
     plt.xlabel('Frequency (Hz)')
     plt.ylabel('Magnitude (dB)')
     plt.grid(True)
-    plt.xlim([-fs / 2, fs / 2])  # Limiting x-axis to show negative and positive frequencies
+    if fmin == 0 and fmax == 0:
+        plt.xlim([-fs / 2, fs / 2])  # Limiting x-axis to show negative and positive frequencies
+    else:
+        plt.xlim(fmin,fmax)
     #plt.ylim(ymin, ymax)
 
 def resize_array(arr, N):

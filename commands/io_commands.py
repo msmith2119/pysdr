@@ -5,7 +5,7 @@ from pathlib import Path
 from mydsp import SineWaveSource
 from mydsp.MorseCodeSource import MorseCodeSource
 from mydsp.NullSource import NullSource
-from mydsp.SineWaveSource import SineWaveSource
+from mydsp.OscillatorSource import OscillatorSource
 from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
@@ -62,7 +62,7 @@ class IOCommands:
         params = m.group(3)
 
         if stype == "WavFile":
-            return self.gen_wavesource(name,params)
+            return self.gen_source(name,stype,params)
         elif stype == "Noise":
             return self.gen_noisesource(name,params)
         elif stype == "Morse":
@@ -71,8 +71,8 @@ class IOCommands:
             return self.gen_rtlsource(name,params)
         elif stype == "Null":
             return self.gen_nullsource(name,params)
-        elif stype == "SineWave":
-            return self.gen_sinewavesource(name,params)
+        elif stype == "Oscillator":
+            return self.gen_source(name,stype,params)
         else :
             MyLogger.error(f"Unknown source type: {stype}")
             return 1
@@ -166,6 +166,38 @@ class IOCommands:
             print(stype)
 
         return 0
+
+
+    def gen_source(self,name,source_type,param_str):
+
+        class_name = source_type + "Source"
+        source_class = globals().get(class_name)
+
+        if not source_class:
+            print(f"Source class '{class_name}' not found.")
+            return 1
+
+        #items = param_str.split(r'[,\s\+')
+        items = re.split(r'[,\s]+', param_str)
+        params = {}
+        params["name"]=name
+        for item in items:
+            k, v = item.split('=')
+            params[k] = get_context().vars.get(v, v)
+
+
+        for req_param in source_class.Params:
+            if params.get(req_param, None) is None:
+                p =  get_context().vars.get(req_param,None)
+                if p is None:
+                    MyLogger.error(f"{class_name} missing required parameter {req_param}")
+                    return 1
+                params[req_param]=p
+
+        src = source_class(**params)
+
+        self.sources[name] = src
+        print(f"Source {name} created")
 
 
     def gen_wavesource(self,name,param_str):

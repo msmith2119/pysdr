@@ -3,13 +3,14 @@ import numpy as np
 
 
 class SineWaveSource:
-    def __init__(self,name,fs,frame_size,num_channels,frequency,amplitude):
+    def __init__(self,name,fs,frame_size,num_channels,frequency,amplitude,num_frames):
         self.name = name
         self.fs = fs
         self.frame_size = frame_size
         self.frequency = frequency
         self.amplitude = amplitude
         self.num_channels = num_channels
+        self.num_frames = num_frames
 
         self.df = self.frequency*self.frame_size/self.fs
         self.summary_text = f"SineWave Source fs={self.fs} frame_size={self.frame_size} frequency={self.frequency} amplitude={self.amplitude} num_channels={self.num_channels} "

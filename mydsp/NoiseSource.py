@@ -105,3 +105,6 @@ class NoiseSource:
 
     def summary(self):
         return self.summary_text
+
+    def get_num_channels(self):
+        return self.num_channels

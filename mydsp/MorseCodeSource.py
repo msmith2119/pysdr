@@ -200,4 +200,5 @@ class MorseCodeSource:
         print("close")
 
 
-
+    def get_num_channels(self):
+        return self.num_channels

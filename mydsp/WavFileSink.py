@@ -30,6 +30,7 @@ class WavFileSink:
     def writeFrame(self, frame):
         """Write one frame (NumPy array of floats in range -1..1) to file."""
        # frame = np.asarray(frame, dtype=np.float32)
+
         if self.isComplex:
             vals = frame[:,0]
            # print(type(vals[0]))
