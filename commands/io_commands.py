@@ -6,6 +6,7 @@ from mydsp import SineWaveSource
 from mydsp.MorseCodeSource import MorseCodeSource
 from mydsp.NullSource import NullSource
 from mydsp.OscillatorSource import OscillatorSource
+from mydsp.RtlSdrSource import RtlSdrSource
 from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
@@ -69,6 +70,8 @@ class IOCommands:
             return self.gen_morsesource(name,params)
         elif stype == "RtlFile":
             return self.gen_rtlsource(name,params)
+        elif stype == "RtlSdr":
+            return self.gen_source(name,stype,params)
         elif stype == "Null":
             return self.gen_nullsource(name,params)
         elif stype == "Oscillator":
@@ -193,6 +196,7 @@ class IOCommands:
                     MyLogger.error(f"{class_name} missing required parameter {req_param}")
                     return 1
                 params[req_param]=p
+
 
         src = source_class(**params)
 
@@ -502,8 +506,10 @@ class IOCommands:
                 print("frame_size  parameter  not defined")
                 return 1
 
+        isComplex = params.get("complex", "False") == "True"
+        useQueue = params.get("useQueue","False") == "True"
 
-        sink = SndCardSink(sample_rate,num_channels,frame_size)
+        sink = SndCardSink(sample_rate,num_channels,frame_size,useQueue,isComplex)
 
         return sink
 

@@ -18,13 +18,14 @@ from mydsp.SincFilter import SincFilter
 from mydsp.FMModFilter import FMModFilter
 from mydsp.FMDemodFilter import FMDemodFilter
 from mydsp.FreqShiftFilter import FreqShiftFilter
+from mydsp.FMStereoFilter import FMStereoFilter
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","FMDemod","FmStereo","Unit"]
 
 class FilterCommands:
 

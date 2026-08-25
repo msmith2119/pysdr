@@ -1,7 +1,7 @@
 
 import numpy as np
 from mydsp.Utils import *
-
+import time
 class FMDemodFilter:
     description = "FMDemod with parameters: gain=<gain>"
     def __init__(self,name,fs,frame_size,gain):
@@ -10,9 +10,10 @@ class FMDemodFilter:
         self.frame_size = frame_size
         self.gain = to_number(gain)
         self.last_sample = 0 + 0j
+        self.profile_data = []
 
     def doFrame(self,frame):
-
+        #start = time.perf_counter()
         if frame is None:
            return None
 
@@ -21,7 +22,8 @@ class FMDemodFilter:
         y = np.angle(x[1:] * np.conj(x[:-1]))*self.gain
 
         self.last_sample = frame[-1]
-
+        #elapsed = time.perf_counter() - start
+        #self.profile_data.append(elapsed)
         return y
 
     @classmethod

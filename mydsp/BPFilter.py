@@ -48,7 +48,7 @@ class BPFilter(FFTFilter):
 
         buffer_size = self.frame_size + self.overlap
         freqs = np.fft.fftfreq(buffer_size, d=1 / self.fs)  # Frequency values for each bin
-        print(freqs)
+
         self.filt = np.full(buffer_size,self.sbg)  # Start with all-cut to stop band gain
 
         # Define the notch bounds

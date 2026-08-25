@@ -81,23 +81,8 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
 
     def cmd_test(self,args):
-
-        src = self.sources.get("mywav")
-        #filt = self.filters.get("mysinc")
-        #lpf = self.filters.get("mylpf")
-        #filt.plotFFT()
-        shifter = self.filters.get("myshift")
-        fs = src.sample_rate
-        block = src.getFrame()
-        block2 = src.getFrame()
-        frame = block[:,0]
-        frame2 = block2[:,0]
-        fout = shifter.doFrame(frame)
-        fout2 = shifter.doFrame(frame2)
-        sample = fout2[:1000]
-        plot_array(sample)
-        plotFFT(fout2,fs,0,0)
-        plt.show()
+        src = self.sources['myrtl']
+        frame = src.getFrame()
 
     def cmd_widget_param(self,args):
 

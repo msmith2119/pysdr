@@ -58,6 +58,7 @@ class PipelineExecutor(threading.Thread):
     def run(self):
 
         self.running = True
+        self.src.start()
         self.sink.start()
         while self.running:
             block = self.src.getFrame()

@@ -111,14 +111,13 @@ class WavFileSource:
 
 
 
+    def start(self):
+        return
     def close(self):
         self.wav.close()
 
     def summary(self):
         return self.summary_text
-    def close(self):
-        """Close the underlying WAV file."""
-        self.wav.close()
 
     def get_num_channels(self):
         if self.isComplex:

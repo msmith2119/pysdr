@@ -26,56 +26,84 @@ class RtlFileSource:
         src.close()
     """
     description = "Source RtlFile <name> frame_size=<frame_size> path=<path>"
-    def __init__(self, filename, frame_size):
+    def __init__(self, filename, frame_size,loop=False):
         self.filename = filename
         self.frame_size = frame_size
         self.file = open(filename, "rb")
         self.num_channels = 1
-        self.summary_text = f"Rtl Source frame_size={self.frame_size}"
+        self.loop=loop
 
 
 
     def getFrame(self):
-        """
-        Returns the next block as an (N,2) float32 array.
 
-        Column 0 : I samples
-        Column 1 : Q samples
+        raw = self.getRawFrame()
 
-        Returns None on EOF.
-        """
-
-        raw = np.fromfile(
-            self.file,
-            dtype=np.uint8,
-            count=2 * self.frame_size
-        )
-
-        if len(raw) == 0:
+        if raw is None:
             return None
 
         if len(raw) & 1:
             raw = raw[:-1]
 
-        raw = raw.astype(np.float32)
 
-        i = (raw[0::2] - 128.0) / 128.0
-        q = (raw[1::2] - 128.0) / 128.0
+        samples = np.frombuffer(raw, dtype=np.uint8)
 
+
+        i = (samples[0::2] - 128.0) / 128.0
+        q = (samples[1::2] - 128.0) / 128.0
 
         col = i.astype(np.complex64) + 1j * q.astype(np.complex64)
+        samples_read = len(col)
+        if samples_read < self.frame_size:
+            pad_rows = self.frame_size - samples_read
+            padding = np.zeros(pad_rows,dtype=np.complex64)
+            col = np.concatenate(( col,padding))
 
-        f = np.column_stack([col])
-
-        return f
+        return np.column_stack([col])
 
 
+    def getRawFrame(self):
+        samplesNeeded = self.frame_size
+        chunks = []
+
+        while samplesNeeded > 0:
 
 
+            raw = np.fromfile(
+                self.file,
+                dtype=np.uint8,
+                count=2 * self.frame_size
+            )
+
+            if len(raw) == 0:
+
+                if not self.loop:
+
+                    if len(chunks) == 0:
+                        return None
+
+                    break
+                self.file.seek(0)
+
+                continue
+
+            samplesRead = len(raw) // 2
+
+            chunks.append(raw)
+            samplesNeeded -= samplesRead
+
+        raw = b"".join(chunks)
+
+        # convert raw -> float ndarray
+        return raw
 
     def rewind(self):
         """Seek back to the beginning of the file."""
         self.file.seek(0)
+
+
+    def start(self):
+        return
 
     def close(self):
         """Close the IQ file."""
@@ -87,7 +115,7 @@ class RtlFileSource:
         return self.num_channels
 
     def summary(self):
-        return self.summary_text
+        return f"Rtl Source frame_size={self.frame_size}, loop={self.loop}"
 
         """Return a summary of the IQ file."""
     def __enter__(self):

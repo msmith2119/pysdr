@@ -196,8 +196,10 @@ class MorseCodeSource:
     def summary(self):
         return self.summary_text
 
+    def start(self):
+        return
     def close(self):
-        print("close")
+        return
 
 
     def get_num_channels(self):

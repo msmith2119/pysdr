@@ -6,18 +6,19 @@ from .Parameter import Parameter, ParameterType
 from .SincFilter import SincFilter
 
 
-class FreqShiftFilter:
+class FreqShiftFilter(FFTFilter):
 
     description = "FreqShiftFilter fs=<sample_rate>, frame_size=<frame_size>, freq=<freq>,fc=<cutoff>"
     def __init__(self,name,fs,frame_size,freq,fc,isComplex=False):
+
+        super().__init__(fs,frame_size,isComplex)
         self.name = name
-        self.fc = to_number(fc)
-        self.fs = fs
-        self.freq = to_number(freq)
-        self.frame_size = frame_size
-        self.bpf = SincFilter("mysinc",self.fs,self.frame_size,201,18000,20000,"BANDPASS")
-        self.lpf = SincFilter("mylpf",self.fs,self.frame_size,201,15000,0,"LOWPASS")
-        self.isComplex = isComplex
+        self.buffer_size = frame_size + self.overlap
+        self.freqs = np.fft.fftfreq(self.buffer_size, d=1 / self.fs)
+        self.set_freq(freq)
+        self.set_fc(fc)
+
+
 
 
 
@@ -34,21 +35,6 @@ class FreqShiftFilter:
         self.filt = np.full(self.buffer_size, 0.0)
         self.filt[np.abs(self.freqs) <= self.fc] = 1.0
 
-    def doFrame(self,frame):
-
-        if frame is None:
-            return None
-
-
-        f19 = self.bpf.doFrame(frame)
-        f38 = f19**2
-        carrier = 1000*(f38-np.mean(f38))
-        #fout = carrier
-        fout = self.lpf.doFrame(frame*carrier)
-
-        return fout
-
-
 
     def fft_convolution(self, yin):
 
@@ -57,11 +43,11 @@ class FreqShiftFilter:
         Ny = int(self.buffer_size/2)
           # Frequencies for each bin
         for i in range(-Ny, Ny - self.p):
-            fnew[i] = fvals[i + self.p]*self.z.conjugate()
+            fnew[i] = fvals[i + self.p]
         for i in range(-Ny + self.p, Ny):
-            fnew[i] += fvals[i - self.p]*self.z
+            fnew[i] += fvals[i - self.p]
 
-        ff = fnew*self.lpfilt
+        ff = fnew*self.filt
         if self.isComplex:
             return ifft(ff)
         else:

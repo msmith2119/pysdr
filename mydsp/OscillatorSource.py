@@ -54,6 +54,8 @@ class OscillatorSource:
 
         return np.column_stack([y])
 
+    def start(self):
+        return
     def close(self):
         return
 

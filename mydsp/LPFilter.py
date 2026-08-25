@@ -12,7 +12,6 @@ class LPFilter(FFTFilter):
     def __init__(self, name, fs, fc,sbg, frame_size,gain=1.0,isComplex="False"):
 
         self.name = name
-        print(f"gain={gain}")
         self.fc = to_number(fc)
         self.sbg = to_number(sbg)
         self.gain = to_number(gain)

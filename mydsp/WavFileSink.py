@@ -33,6 +33,7 @@ class WavFileSink:
 
         if self.isComplex:
             vals = frame[:,0]
+
            # print(type(vals[0]))
             frame = np.column_stack([vals.real,vals.imag])
          #   print(frame.shape)
@@ -52,7 +53,7 @@ class WavFileSink:
         self.wav.close()
 
     def summary(self):
-        return self.summary_text
+        return f"Wave File Sink file={self.file_name} frame_size={self.frame_size} sample_rate={self.sample_rate} num_channels={self.num_channels}, complex={self.isComplex}"
 # Example usage:
 if __name__ == "__main__":
     # Generate a 1 kHz test tone for 1 second
