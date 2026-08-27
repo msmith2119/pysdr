@@ -94,6 +94,15 @@ class FFTFilter:
      #   self.profile_data.append(elapsed)
         return yout
 
+    def doFrame2(self,frame):
+
+        if frame is None:
+            return  None
+
+        return self.fft_convolution(frame)
+
+        return y
+
     def fft_convolution(self,yin):
 
         zo = fft(yin)

@@ -62,6 +62,31 @@ def plotFFT(y,fs,fmin,fmax):
         plt.xlim(fmin,fmax)
     #plt.ylim(ymin, ymax)
 
+def shift_freq(yin,fs,freq):
+    if freq == 0.0 :
+        return yin
+
+    buffer_size = len(yin)
+    p = int(buffer_size * freq / fs)
+    m = np.abs(p)
+    fvals = fft(yin)
+    fnew = np.zeros(len(fvals), dtype=complex)
+    Ny = int(buffer_size / 2)
+    if p < 0:
+        for i in range(-Ny + m, 0):
+            fnew[i] = fvals[i - m]
+        for i in range(0, Ny - m):
+            fnew[i] = fvals[i + m]
+
+    elif p > 0:
+        for i in range(-Ny, -m):
+            fnew[i] = fvals[i + m]
+        for i in range(m, Ny):
+            fnew[i] = fvals[i - m]
+    else:
+        return yin
+
+    return ifft(fnew).real
 def resize_array(arr, N):
 
     M = len(arr)

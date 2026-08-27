@@ -2,6 +2,9 @@ import os
 
 import tkinter as tk
 from functools import partial
+
+from jupyterlab.commands import enable_extension
+
 from commands import dsl_globals
 from commands.dsl_globals import get_context
 from commands.filter_commands import FilterCommands
@@ -9,7 +12,7 @@ from commands.signal_commands import SignalCommands
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
-from mydsp import WavFileSource
+from mydsp import WavFileSource, Utils
 from mydsp.OscillatorSource import OscillatorSource
 from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.SincFilter import SincFilter
@@ -20,7 +23,7 @@ from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
 from mydsp.WavFileSource import WavFileSource
 from ui.EqWidget import EqWidget
-from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number
+from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number,shift_freq
 from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
@@ -81,8 +84,32 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
 
     def cmd_test(self,args):
-        src = self.sources['myrtl']
-        frame = src.getFrame()
+
+        fs = 8000
+        frame_size = 1000
+        freq = 100
+        overlap = 200
+        zeros = np.zeros(overlap)
+        buffer_size = frame_size + overlap
+        hwin = Utils.create_ola_function(buffer_size, overlap)
+        envelope = np.array([hwin(i) for i in range(buffer_size)])
+        src = OscillatorSource("myosc",fs,frame_size,500.0,0.2,0,0,"cos")
+        filt = FreqShiftFilter("myshift",fs,frame_size,freq)
+        frames = [src.getFrame()[:,0] for _ in range(10)]
+        one = frames[0]
+        prev_buf = np.concatenate((zeros,one))
+        prev_out = shift_freq(prev_buf,fs,freq)*envelope
+        two = frames[1]
+        three= frames[2]
+        buffer = np.concatenate((one[-200:],two))
+        buffer_out = shift_freq(buffer,fs,freq)*envelope
+        plot_array(prev_out)
+        plot_array(buffer_out)
+        yall = np.copy(prev_out[overlap:])
+        yall[-overlap:] += buffer_out[:overlap]
+        plot_array(yall)
+        plt.show()
+
 
     def cmd_widget_param(self,args):
 
