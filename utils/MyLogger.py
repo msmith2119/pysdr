@@ -29,3 +29,10 @@ class MyLogger:
     @classmethod
     def error(cls,msg):
         cls.log(msg,LogLevel.ERROR)
+
+    @classmethod
+    def info(cls,msg):
+        cls.log(msg,LogLevel.INFO)
+
+    def warn(cls,msg):
+        cls.log(msg,LogLevel.WARN)

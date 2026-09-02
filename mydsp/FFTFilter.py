@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from scipy.fftpack import fft, ifft
 from mydsp.Utils import to_bool
-from mydsp.SigClasses import Signal
+
 from mydsp.Utils import create_ola_function, plot_array
 import time
 

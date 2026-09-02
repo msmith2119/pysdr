@@ -2,6 +2,8 @@
 import numpy as np
 from mydsp.Utils import *
 import time
+from .Parameter import ParameterType, Parameter
+
 class FMDemodFilter:
     description = "FMDemod with parameters: gain=<gain>"
     def __init__(self,name,fs,frame_size,gain):
@@ -11,6 +13,12 @@ class FMDemodFilter:
         self.gain = to_number(gain)
         self.last_sample = 0 + 0j
         self.profile_data = []
+
+    def getParameters(self):
+        return [Parameter(ParameterType.FLOAT,"gain",0,1,self.gain)]
+
+    def set_gain(self,gain):
+        self.gain = to_number(gain)
 
     def doFrame(self,frame):
         #start = time.perf_counter()

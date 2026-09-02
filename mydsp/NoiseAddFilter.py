@@ -29,7 +29,7 @@ class NoiseAddFilter(FFTFilter):
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"amplitude",0.0,1.0)]
+        return [Parameter(ParameterType.FLOAT,"amplitude",0.0,1.0,self.amplitude)]
 
     def set_amplitude(self,amplitude):
         self.amplitude = amplitude

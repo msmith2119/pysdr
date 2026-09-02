@@ -19,7 +19,7 @@ class FreqShiftFilter:
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"freq",-self.fs/20.0,self.fs/20.0)]
+        return [Parameter(ParameterType.FLOAT,"freq",-self.fs/20.0,self.fs/20.0,self.freq)]
 
 
     def set_freq(self,freq):

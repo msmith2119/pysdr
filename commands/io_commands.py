@@ -4,7 +4,7 @@ from pathlib import Path
 
 from mydsp import SineWaveSource
 from mydsp.MorseCodeSource import MorseCodeSource
-from mydsp.NullSource import NullSource
+
 from mydsp.OscillatorSource import OscillatorSource
 from mydsp.RtlSdrSource import RtlSdrSource
 from mydsp.RtlFileSource import RtlFileSource
@@ -129,6 +129,7 @@ class IOCommands:
             sink = self.gen_wav_sink(name,params)
         elif stype == "SndCard":
             sink = self.gen_sndcard_sink(name,params)
+
         else:
             MyLogger.error(f"Invalid sink type {stype}")
             return 1
@@ -509,7 +510,8 @@ class IOCommands:
         isComplex = params.get("complex", "False") == "True"
         useQueue = params.get("useQueue","False") == "True"
 
-        sink = SndCardSink(sample_rate,num_channels,frame_size,useQueue,isComplex)
+
+        sink = SndCardSink(sample_rate,num_channels,frame_size,isComplex,useQueue)
 
         return sink
 

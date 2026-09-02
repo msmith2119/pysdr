@@ -38,9 +38,9 @@ class BPFilter(FFTFilter):
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2.0),
-                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0),
-                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0)]
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2.0,self.fc),
+                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0,self.fbw),
+                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0,self.sbg)]
 
 
     def calc(self):

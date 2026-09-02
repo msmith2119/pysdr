@@ -28,6 +28,7 @@ class RtlSdrSource:
             daemon=True
         )
 
+
     def _capture(self):
         while self.running:
             frame = self.getInternalFrame()
@@ -40,8 +41,8 @@ class RtlSdrSource:
 
 
         if self.num_frames  == 0:
-            return self.sdr.read_samples(self.frame_size)
-
+            samples = self.sdr.read_samples(self.frame_size)
+            return np.column_stack([samples])
         if self.current_frame < self.num_frames:
             self.current_frame += 1
             samples = self.sdr.read_samples(self.frame_size)

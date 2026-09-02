@@ -25,8 +25,8 @@ class NotchFilter(FFTFilter):
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2),
-                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0)]
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2,self.fc),
+                Parameter(ParameterType.FLOAT,"fbw",0.1*self.fc,self.fc/2.0,self.fbw)]
 
     def set_fc(self,fc):
         self.fc = to_number(fc)

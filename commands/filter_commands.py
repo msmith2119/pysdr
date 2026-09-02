@@ -17,6 +17,7 @@ from mydsp.ToneControlFilter import ToneControlFilter
 from mydsp.SincFilter import SincFilter
 from mydsp.FMModFilter import FMModFilter
 from mydsp.FMDemodFilter import FMDemodFilter
+from mydsp.AMDemodFilter import AMDemodFilter
 from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.FMStereoFilter import FMStereoFilter
 from mydsp.Utils import to_number
@@ -25,7 +26,7 @@ from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","FMDemod","FmStereo","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","FMDemod","AMDemod","FmStereo","Unit"]
 
 class FilterCommands:
 

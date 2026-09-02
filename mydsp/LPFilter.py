@@ -22,8 +22,8 @@ class LPFilter(FFTFilter):
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"fc",0.0,self.fs/2.0),
-                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0)]
+        return [Parameter(ParameterType.FLOAT,"fc",0.5*self.fc,1.5*self.fc,self.fc),
+                Parameter(ParameterType.FLOAT,"sbg",0.0,1.0,self.sbg)]
 
     def set_fc(self,fc):
         self.fc = to_number(fc)

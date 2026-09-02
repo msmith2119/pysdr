@@ -56,7 +56,7 @@ class PipelineExecutor(threading.Thread):
                 if filt.name == fname:
                     return filt.profile_data
     def run(self):
-
+        print(f"self.channels = {self.channels}")
         self.running = True
         self.src.start()
         self.sink.start()

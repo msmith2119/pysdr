@@ -38,8 +38,8 @@ class FMModFilter:
 
 
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"fc",0.0,0.9*self.fs/2.0),
-                Parameter(ParameterType.FLOAT,"dev",0,self.fs/2)]
+        return [Parameter(ParameterType.FLOAT,"fc",0.0,0.9*self.fs/2.0,self.fc),
+                Parameter(ParameterType.FLOAT,"dev",0,self.fs/2,self.dev)]
     @classmethod
     def from_instance(cls, other):
         return cls(other.name, other.fs, other.frame_size,other.fc, other.dev)

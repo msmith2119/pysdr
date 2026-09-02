@@ -39,8 +39,8 @@ class SincFilter(IIRFilter):
         else:
             raise ValueError(f"ftype {self.ftype} not supported")
     def getParameters(self):
-        return [Parameter(ParameterType.FLOAT,"f1",0.01*self.fs/2.0,0.9*self.fs/2.0),
-                 Parameter(ParameterType.FLOAT, "f2", 0.1 * self.fs / 2.0, 0.9 * self.fs / 2.0)]
+        return [Parameter(ParameterType.FLOAT,"f1",0.01*self.fs/2.0,0.9*self.fs/2.0,self.f1),
+                 Parameter(ParameterType.FLOAT, "f2", 0.1 * self.fs / 2.0, 0.9 * self.fs / 2.0,self.f2)]
 
 
     def set_f1(self,f1):

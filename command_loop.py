@@ -8,7 +8,7 @@ from jupyterlab.commands import enable_extension
 from commands import dsl_globals
 from commands.dsl_globals import get_context
 from commands.filter_commands import FilterCommands
-from commands.signal_commands import SignalCommands
+
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
@@ -18,11 +18,13 @@ from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.SincFilter import SincFilter
 from mydsp.SineWaveSource import SineWaveSource
 from mydsp.EQFilter import EQFilter
-from mydsp.NullSource import NullSource
+from mydsp.RtlFileSource import RtlFileSource
 from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
 from mydsp.WavFileSource import WavFileSource
 from ui.EqWidget import EqWidget
+from ui.ParamWidget import  ParamWidget
+from ui.RtlSdrForm import RtlSdrForm
 from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number,shift_freq
 from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
@@ -31,8 +33,11 @@ import sys
 import math
 import numpy as np
 from scipy.fftpack import fft, ifft
+import numpy as np
+from scipy.ndimage import gaussian_filter1d
+
 MyLogger.set_level(LogLevel.INFO)
-class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCommands):
+class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
     def __init__(self):
         self.vars = {}
         self.filters = {}
@@ -49,7 +54,6 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'test':self.cmd_test,
             'filter': self.cmd_filter,
             'decimator':self.cmd_decimator,
-            'signal': self.cmd_signal,
             'source': self.cmd_input_src,
             'sources':self.cmd_sources,
             'sourcetype':self.cmd_sourcetype,
@@ -66,7 +70,6 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'widget':self.cmd_widget_param,
             'set_pipeline_param':self.cmd_set_pipeline_param,
             'get_profile':self.cmd_get_pipeline_profile,
-            'signals':self.cmd_signals,
             'pipelines':self.cmd_pipelines,
             'run':self.cmd_run_pipeline,
             'stop':self.cmd_stop_pipeline,
@@ -76,8 +79,8 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             'plot': self.cmd_plot,
             'help': self.cmd_help,
             'quit':self.cmd_quit,
-            'filtertype': self.cmd_filtertype,
-            'signaltype': self.cmd_signaltype,
+            'filtertype': self.cmd_filtertype
+
         }
         dsl_globals.set_context(self)
 
@@ -85,31 +88,83 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
 
     def cmd_test(self,args):
 
-        fs = 8000
-        frame_size = 1000
-        freq = 100
-        overlap = 200
-        zeros = np.zeros(overlap)
-        buffer_size = frame_size + overlap
-        hwin = Utils.create_ola_function(buffer_size, overlap)
-        envelope = np.array([hwin(i) for i in range(buffer_size)])
-        src = OscillatorSource("myosc",fs,frame_size,500.0,0.2,0,0,"cos")
-        filt = FreqShiftFilter("myshift",fs,frame_size,freq)
-        frames = [src.getFrame()[:,0] for _ in range(10)]
-        one = frames[0]
-        prev_buf = np.concatenate((zeros,one))
-        prev_out = shift_freq(prev_buf,fs,freq)*envelope
-        two = frames[1]
-        three= frames[2]
-        buffer = np.concatenate((one[-200:],two))
-        buffer_out = shift_freq(buffer,fs,freq)*envelope
-        plot_array(prev_out)
-        plot_array(buffer_out)
-        yall = np.copy(prev_out[overlap:])
-        yall[-overlap:] += buffer_out[:overlap]
-        plot_array(yall)
-        plt.show()
+        sample_rate = 250000.0
+        signal_smooth = 2
+        noise_smooth = 20
+        threshold_db = 10
+        min_width = 3
+        frame_size = 125000
+        center_freq = 120000000
+        src = RtlFileSource("rtl/f120.dat",frame_size)
+        block = src.getFrame()
+        iq_frame = block[:,0]
 
+        plotFFT(iq_frame,sample_rate,0,0)
+        fft_frame = np.fft.fft(iq_frame)
+
+        power = np.abs(fft_frame) ** 2
+
+        power = np.fft.fftshift(power)
+        power = np.asarray(power,dtype=float)
+        #plot_array(power)
+        power = np.maximum(power,1e-12)
+        spectrum_db = 10.0 * np.log10(power)
+        smooth_db = gaussian_filter1d(spectrum_db, signal_smooth)
+        noise_db = gaussian_filter1d(spectrum_db,noise_smooth)
+        snr_db = smooth_db - noise_db
+        plot_array(snr_db)
+        above = snr_db > threshold_db
+        transitions = np.diff(above.astype(np.int8))
+        starts = np.where(transitions == 1)[0] + 1
+        ends = np.where(transitions == -1)[0] + 1
+        if above[0]:
+            starts = np.insert(starts, 0, 0)
+
+        if above[-1]:
+            ends = np.append(ends, len(above))
+
+        bin_width = sample_rate / len(fft_frame)
+
+        signals = []
+
+        for start, end in zip(starts, ends):
+
+            width = end - start
+
+            if width < min_width:
+                continue
+
+            # Find strongest bin in this signal.
+            peak_bin = start + np.argmax(snr_db[start:end])
+
+            # Convert FFT bin to frequency.
+            #
+            # Assumes fft_frame has been fftshift()'d.
+            freq = center_freq + (peak_bin - len(fft_frame) / 2) * bin_width
+
+            # Center of occupied region.
+            center_bin = (start + end - 1) / 2
+            signal_freq = (
+                    center_freq
+                    + (center_bin - len(fft_frame) / 2) * bin_width
+            )
+
+            bandwidth = width * bin_width
+
+            signals.append({
+                "center_freq": signal_freq,
+                "bandwidth": bandwidth,
+                "strength_db": snr_db[peak_bin],
+                "start_bin": start,
+                "end_bin": end - 1,
+                "peak_bin": peak_bin
+            })
+
+        for sig in signals:
+            print(sig)
+
+        #plot_array(above)
+        plt.show()
 
     def cmd_widget_param(self,args):
 
@@ -120,15 +175,49 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
       #      return
 
         filter = self.filters.get(name,None)
+        src = self.sources.get(name,None)
 
-        if filter is None:
-            print("Filter does not exist : {name}")
-            return
-
-        if type(filter).__name__ == "EQFilter":
-            self.show_eq_widget(filter)
+        if filter is not None:
+            if type(filter).__name__ == "EQFilter":
+                self.show_eq_widget(filter)
+            else:
+                self.show_filter_widget(name)
+        elif src is not None:
+            if type(src).__name__ == "RtlSdrSource":
+                rtlsdr = src.sdr
+                self.show_rtlsdr_widget(rtlsdr)
+            else:
+                MyLogger.info("No widget support for source {name}")
         else:
-            self.show_filter_widget(name)
+            MyLogger.error(f"Object not found {name}")
+
+    def show_rtlsdr_widget(self,rtlsdr):
+
+        freq = str(rtlsdr.center_freq/1e6)
+        gain = rtlsdr.gain
+
+
+        vals = {}
+        vals['frequency'] = freq
+        vals['gain'] = gain
+
+        root = tk.Tk()
+        root.title(f"RtlSdr")
+        def frequency_changed(frequency):
+            freq = float(frequency)*1e6
+            rtlsdr.center_freq = freq
+            print(f"Frequency changed : {freq}")
+
+        def gain_changed(gain):
+            if gain == "auto":
+                rtlsdr.gain='auto'
+            else:
+                rtlsdr.gain=float(gain)
+                print(f"Gain changed : {gain}")
+
+        form = RtlSdrForm(root, vals, frequency_changed, gain_changed)
+        form.pack(padx=20, pady=20)
+        root.mainloop()
 
     def show_filter_widget(self,name):
 
@@ -138,37 +227,30 @@ class DSLContext(FilterCommands,SignalCommands,IOCommands,PipelineCommands,WavCo
             MyLogger.error("No pipeline running")
             return
 
+        N = 100
         filter = self.filters[name]
-        print(filter)
+        def reset_params():
+            orig_params = filter.getParameters()
+            for p in orig_params:
+                self.pipeline_thread.set_filter_param(name, p.name, p.val)
         params = filter.getParameters()
+        for param in params:
+            param.val = self.pipeline_thread.get_filter_param(name, param.name)
 
-        def value_changed(pname, value):
-            self.pipeline_thread.set_filter_param(name, pname, value)
+        def param_changed(pname, value):
+            self.pipeline_thread.set_filter_param(name,pname,value)
 
         root = tk.Tk()
         root.title(f"Filter {name}")
-        for param in params:
+        param_editor = ParamWidget(
+            root,name,params,N,param_changed
+        )
+        param_editor.pack(padx=20, pady=20)
 
-            cval = self.pipeline_thread.get_filter_param(name, param.name)
-
-            resolution = (param.max-param.min)/100.0
-            SliderControl(
-                root,
-                param.name,
-                param.min,
-                param.max,
-                resolution,
-                cval,
-                partial(value_changed, param.name)
-            )
-        tk.Button(
-            root,
-            text="Close",
-            command=root.destroy
-        ).pack(pady=10)
 
         root.mainloop()
         return
+
 
 
 

@@ -11,9 +11,11 @@ class SliderControl:
             maxval,
             resolution,
             initial,
-            callback):
+            callback,
+            format_spec=".1f"):
 
         self.callback = callback
+        self.format_spec = format_spec
 
         frame = tk.Frame(parent)
         frame.pack(fill="x", padx=10, pady=15)
@@ -25,10 +27,8 @@ class SliderControl:
             anchor="w"
         ).grid(row=0, column=0, sticky="w")
 
-        self.value_var = tk.StringVar(
-            value=f"{initial:.1f}"
-        )
 
+        self.value_var = tk.StringVar(value=self._format_value(initial))
         self.slider = tk.Scale(
             frame,
             from_=minval,
@@ -71,11 +71,12 @@ class SliderControl:
 
         frame.columnconfigure(1, weight=1)
 
-
+    def _format_value(self, value):
+        return f"{float(value):{self.format_spec}}"
 
     def _on_drag(self, value):
         """Update displayed value while dragging."""
-        self.value_var.set(f"{float(value):.1f}")
+        self.value_var.set(self._format_value(value))
 
     def _on_release(self, event):
         """Notify caller when user releases mouse."""
@@ -109,7 +110,8 @@ class SliderControl:
 
         self.slider.set(value)
 
-        self.value_var.set(f"{value:.1f}")
+
+        self.value_var.set(self._format_value(value))
         self.callback(value)
 
     def _on_mousewheel_dn(self, event):
@@ -129,5 +131,6 @@ class SliderControl:
         )
 
         self.slider.set(value)
-        self.value_var.set(f"{value:.1f}")
+        self.value_var.set(self._format_value(value))
+        self.callback(value)
         self.callback(value)
