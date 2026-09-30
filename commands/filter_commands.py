@@ -20,13 +20,15 @@ from mydsp.FMDemodFilter import FMDemodFilter
 from mydsp.AMDemodFilter import AMDemodFilter
 from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.FMStereoFilter import FMStereoFilter
+from mydsp.MeterFilter import MeterFilter
+from mydsp.SquelchFilter import SquelchFilter
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context
 import matplotlib.pyplot as plt
 from .dsl_globals import get_context
 
-all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","FMDemod","AMDemod","FmStereo","Unit"]
+all_filters = ["SincLP","LP","BP","EQ","Notch","Delay","NoiseAdd","Analog","RC","ToneControl","Sinc","FreqShift","FMDemod","AMDemod","FmStereo","Meter","Squelch","Unit"]
 
 class FilterCommands:
 
@@ -88,8 +90,8 @@ class FilterCommands:
         pairs = [item.split('=') for item in param_str.split(',') if '=' in item]
         for k, v in pairs:
             params[k] = v
-        dec = Decimator(**params)
-        self.decimators[name] = dec
+
+
         fs = get_context().vars.get('sample_rate',None)
         if fs is None:
             print("sample_rate not defined")
@@ -108,6 +110,9 @@ class FilterCommands:
         frame_size_new = int(int(frame_size)/int(factor))
         get_context().vars['sample_rate']=fs_new
         get_context().vars['frame_size']=frame_size_new
+
+        dec = Decimator(name,frame_size_new,factor)
+        self.decimators[name] = dec
         print(f"Decimator {name} created.")
 
 

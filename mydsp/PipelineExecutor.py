@@ -45,11 +45,23 @@ class PipelineExecutor(threading.Thread):
                     setter(pvalue)
 
     def get_filter_param(self,fname,pname):
+        value = None
+        print(f"get_filter_param fname={fname}, pname={pname}")
         for row in self.filter_banks:
             for filt in row:
                 if filt.name == fname:
-                    value =getattr(filt, pname)
+                    value =getattr(filt, pname,None)
+                    if value is None:
+                        getter = getattr(filt, f"get_{pname}",None)
+                        if getter is None:
+                            print(f"Error get_filter_param : no get_{pname} found")
+                            return None
+                        value = getter()
+                        if value  is not None:
+                            return value
                     return value
+        return value
+
     def get_filter_profile(self,fname):
         for row in self.filter_banks:
             for filt in row:
@@ -76,7 +88,9 @@ class PipelineExecutor(threading.Thread):
 
                     if frame is None:
                         break
+
                 if frame is not None:
+
                      cols.append(frame)
 
 

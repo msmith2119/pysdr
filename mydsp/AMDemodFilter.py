@@ -15,7 +15,7 @@ class AMDemodFilter:
 
 
     def getParameters(self):
-        return [Parameter("gain",0,1,self.gain)]
+        return [Parameter(ParameterType.FLOAT,"gain",0,1,self.gain)]
 
     def set_gain(self,gain):
         self.gain = to_number(gain)

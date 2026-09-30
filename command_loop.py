@@ -8,13 +8,16 @@ from jupyterlab.commands import enable_extension
 from commands import dsl_globals
 from commands.dsl_globals import get_context
 from commands.filter_commands import FilterCommands
-
+from commands.user_commands import UserCommands
 from commands.pipeline_commands import PipelineCommands
 from commands.wav_commands import WavCommands
 from commands.io_commands import IOCommands
 from mydsp import WavFileSource, Utils
+from mydsp.LPFilter import LPFilter
+from mydsp.NoiseSource import NoiseSource
 from mydsp.OscillatorSource import OscillatorSource
 from mydsp.FreqShiftFilter import FreqShiftFilter
+from mydsp.MeterFilter import MeterFilter
 from mydsp.SincFilter import SincFilter
 from mydsp.SineWaveSource import SineWaveSource
 from mydsp.EQFilter import EQFilter
@@ -22,25 +25,33 @@ from mydsp.RtlFileSource import RtlFileSource
 from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
 from mydsp.WavFileSource import WavFileSource
+from mydsp.Scanner import Scanner
+from mydsp.ScanExecutor import ScanExecutor
 from ui.EqWidget import EqWidget
 from ui.ParamWidget import  ParamWidget
 from ui.RtlSdrForm import RtlSdrForm
-from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number,shift_freq
+from ui.ScanForm import ScanForm
+from mydsp.Utils import parse_argv, plot_array, plotFFT, to_number,shift_freq,plot_arrays
 from ui.SliderControl import SliderControl
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
+from mydsp.Utils import is_float
 import sys
 import math
 import numpy as np
 from scipy.fftpack import fft, ifft
 import numpy as np
 from scipy.ndimage import gaussian_filter1d
+import time
+from scipy.fftpack import fft, ifft
+import heapq
 
 MyLogger.set_level(LogLevel.INFO)
-class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
+class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserCommands):
     def __init__(self):
         self.vars = {}
         self.filters = {}
+        self.scanners = {}
         self.signals = {}
         self.pipelines = {}
         self.sources = {}
@@ -73,6 +84,9 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
             'pipelines':self.cmd_pipelines,
             'run':self.cmd_run_pipeline,
             'stop':self.cmd_stop_pipeline,
+            'scan':self.cmd_scan,
+            'start_scan':self.cmd_start_scan,
+            'stop_scan':self.cmd_stop_scan,
             'connect':self.cmd_connect,
             'exec':self.cmd_exec,
             'show': self.cmd_show,
@@ -88,83 +102,118 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
 
     def cmd_test(self,args):
 
-        sample_rate = 250000.0
-        signal_smooth = 2
-        noise_smooth = 20
-        threshold_db = 10
-        min_width = 3
-        frame_size = 125000
-        center_freq = 120000000
-        src = RtlFileSource("rtl/f120.dat",frame_size)
-        block = src.getFrame()
-        iq_frame = block[:,0]
+        #src = self.sources["mywav"]
+        frames = []
+        frame_size = 5000
+        fs = 48000.0
+        meter = MeterFilter("mymeter",fs,frame_size)
+        #src = NoiseSource("myn",0.1,frame_size,1,num_frames=30)
+        src = WavFileSource("mywav","audio/atc_noise.wav",frame_size)
+        while True:
+            block = src.getFrame()
+            if block is None:
+                break
+            frames.append(block[:,0])
 
-        plotFFT(iq_frame,sample_rate,0,0)
-        fft_frame = np.fft.fft(iq_frame)
 
-        power = np.abs(fft_frame) ** 2
+        for frame in frames[1:2]:
+            #plotFFT(frame,fs,0,0)
+            #plt.show()
+            plot_array(frame)
+            plt.show()
+            fft_frame = fft(frame)
+            power = np.abs(fft_frame) ** 2
 
-        power = np.fft.fftshift(power)
-        power = np.asarray(power,dtype=float)
-        #plot_array(power)
-        power = np.maximum(power,1e-12)
-        spectrum_db = 10.0 * np.log10(power)
-        smooth_db = gaussian_filter1d(spectrum_db, signal_smooth)
-        noise_db = gaussian_filter1d(spectrum_db,noise_smooth)
-        snr_db = smooth_db - noise_db
-        plot_array(snr_db)
-        above = snr_db > threshold_db
-        transitions = np.diff(above.astype(np.int8))
-        starts = np.where(transitions == 1)[0] + 1
-        ends = np.where(transitions == -1)[0] + 1
-        if above[0]:
-            starts = np.insert(starts, 0, 0)
+            power = np.fft.fftshift(power)
+            power = np.asarray(power, dtype=float)
+            top = heapq.nlargest(5,power)
+            print(top)
+            plot_array(power)
+            plt.show()
+            spectrum_db = 10.0 * np.log10(power)
+            smooth_db = gaussian_filter1d(spectrum_db, 2)
+            noise_db = gaussian_filter1d(spectrum_db, 20)
+            snr_db = smooth_db - noise_db
+            plot_array(snr_db)
+            plt.show()
+            meter.doFrame(frame)
+            rms = meter.get_rms()
+            x = frame- np.mean(frame)
 
-        if above[-1]:
-            ends = np.append(ends, len(above))
+            #plot_array(x)
 
-        bin_width = sample_rate / len(fft_frame)
+            # Envelope
+            env = np.abs(x)
 
-        signals = []
+            # Smooth envelope
+            #filt = LPFilter("mylp",src.sample_rate,1000.0,0.001,src.frame_size,1.0,False)
+            filt = SincFilter("mysinc",fs,src.frame_size,101,1000,0,"LOWPASS")
+            env = filt.doFrame(env)
+            #plot_array(env)
+            #plt.show()
+            # Autocorrelation
+            r = np.correlate(env, env, mode='full')
 
-        for start, end in zip(starts, ends):
+            mid = len(env) - 1
+            r /= r[mid]
+            #plot_array(r)
+            #plt.show()
+            # Ignore zero lag
+            h = int(0.75*len(r))
+            #score = np.max(r[mid + 1:mid + 200])
+            score = r[h]
+            print(f"rms = {rms}")
+            print(f"score={score}")
 
-            width = end - start
 
-            if width < min_width:
-                continue
 
-            # Find strongest bin in this signal.
-            peak_bin = start + np.argmax(snr_db[start:end])
 
-            # Convert FFT bin to frequency.
-            #
-            # Assumes fft_frame has been fftshift()'d.
-            freq = center_freq + (peak_bin - len(fft_frame) / 2) * bin_width
+    def show_scan_widget(self,scanner):
 
-            # Center of occupied region.
-            center_bin = (start + end - 1) / 2
-            signal_freq = (
-                    center_freq
-                    + (center_bin - len(fft_frame) / 2) * bin_width
-            )
 
-            bandwidth = width * bin_width
+        def doscan(name,delay,threshold,str_freqs):
 
-            signals.append({
-                "center_freq": signal_freq,
-                "bandwidth": bandwidth,
-                "strength_db": snr_db[peak_bin],
-                "start_bin": start,
-                "end_bin": end - 1,
-                "peak_bin": peak_bin
-            })
+            freqs = [float(i)  for i in str_freqs]
+            print(name)
+            print(delay)
+            print(threshold)
+            print(freqs)
+            if not is_float(delay):
+                MyLogger.error(f"Not a number for delay {delay}")
+                return
+            if not is_float(threshold):
+                MyLogger.error(f"Not a number for threshold {threshold}")
+                return
+            scanner = self.scanners.get(name,None)
+            if scanner is None:
+                MyLogger.error("referenced scanner not defined {name}")
+                return
+            scanner.delay = float(delay)
+            if scanner.delay <= 0.0:
+                MyLogger.error(f"Non positive number found for delay {scanner.delay} ")
+                return
+            scanner.threshold = float(threshold)
+            if scanner.threshold <= 0.0:
+                MyLogger.error(f"Non positive number found for threshold {scanner.threshold}")
+                return
+            if len(freqs) < 2:
+                MyLogger.error("Need two or more frequencies to scan")
+                return
 
-        for sig in signals:
-            print(sig)
-
-        #plot_array(above)
-        plt.show()
+            scanner.freqs = freqs
+            self.scan_thread = ScanExecutor(scanner, self.pipeline_thread.get_filter_param,
+                                            self.pipeline_thread.set_filter_param)
+            self.scan_thread.start()
+        def stopscan():
+            self.scan_thread.stop()
+            print("stopscan")
+            return
+        print(scanner.freqs)
+        root = tk.Tk()
+        root.title(f"Scanner")
+        form = ScanForm(root,scanner.delay,scanner.threshold,scanner.freqs,partial(doscan,scanner.name),stopscan)
+        form.pack(padx=20, pady=20)
+        root.mainloop()
 
     def cmd_widget_param(self,args):
 
@@ -176,7 +225,7 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
 
         filter = self.filters.get(name,None)
         src = self.sources.get(name,None)
-
+        scanner = self.scanners.get(name,None)
         if filter is not None:
             if type(filter).__name__ == "EQFilter":
                 self.show_eq_widget(filter)
@@ -188,6 +237,8 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
                 self.show_rtlsdr_widget(rtlsdr)
             else:
                 MyLogger.info("No widget support for source {name}")
+        elif scanner is not None:
+            self.show_scan_widget(scanner)
         else:
             MyLogger.error(f"Object not found {name}")
 
@@ -343,6 +394,9 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
         if name in self.sinks:
             print(self.sinks[name].summary())
             found=True
+        if name in self.scanners:
+            print(self.scanners[name].summary())
+            found=True
         if name in self.pipelines:
             src = self.pipelines[name]['src']
             sink = self.pipelines[name]['sink']
@@ -413,10 +467,16 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands):
             return None
         param_name = a[1]
         param_value = getattr(a[0], a[1],None)
-        if param_value == None:
-            MyLogger.log(f"Unknown parameter {param_name}",LogLevel.WARN)
-            return None
 
+        if param_value is not None:
+            return param_value
+
+
+        getter = getattr(a[0], f"get_{a[1]}")
+        if getter is None:
+            MyLogger.log(f"Unknown parameter {param_name}", LogLevel.WARN)
+
+        param_value = getter()
 
         return param_value;
 

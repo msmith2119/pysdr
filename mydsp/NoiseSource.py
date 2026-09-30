@@ -25,14 +25,19 @@ class NoiseSource:
     description = "source Noise <name> frame_size=<frame_size>,num_channels = <num_channels>, amplitude=<amplitude>"
     def __init__(
         self,
-        noise_type: NoiseType,
+        name,
         amplitude: float,
         frame_size: int,
         num_channels: int,
         num_frames=0,
-        isComplex=False
+        isComplex=False,
+        noise_type = NoiseType.WHITE
+
+    ,
 
     ):
+
+        self.name = name
         self.noise_type = noise_type
         self.amplitude = float(amplitude)
         self.frame_size = int(frame_size)

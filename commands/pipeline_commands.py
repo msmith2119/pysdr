@@ -57,6 +57,7 @@ class PipelineCommands:
         return 0
 
 
+
     def cmd_run_pipeline(self, args):
 
         line = ' '.join(args)

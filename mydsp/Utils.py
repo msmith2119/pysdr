@@ -24,6 +24,14 @@ def to_bool(c):
             raise TypeError(f"Expected bool or str, got {type(c).__name__}")
 
         return value
+
+def is_float(element):
+    try:
+        float(element)
+        return True
+    except ValueError:
+        return False
+
 def plotFFT(y,fs,fmin,fmax):
 
 
@@ -171,7 +179,15 @@ def plot_array(w):
     plt.title("Plot of Array x")
     plt.grid(True)
 
-
+def plot_arrays(a,b):
+    N = len(a)  # Length of the array
+    plt.figure(figsize=(8, 4))  # Set figure size
+    plt.plot(np.arange(N), a, marker='o', linestyle='-')  # Plot with markers
+    plt.plot(np.arange(N), b, marker='o', linestyle='-')  #
+    plt.xlabel("Index")
+    plt.ylabel("Value")
+    plt.title("Plot of Array a,b")
+    plt.grid(True)
 
 
 def is_writable(file_path):
@@ -223,3 +239,82 @@ def parse_argv(argv):
             i += 1
 
     return result
+
+def findSignals():
+    sample_rate = 250000.0
+    signal_smooth = 2
+    noise_smooth = 20
+    threshold_db = 10
+    min_width = 3
+    frame_size = 125000
+    center_freq = 120000000
+    src = RtlFileSource("rtl/f120.dat", frame_size)
+    block = src.getFrame()
+    iq_frame = block[:, 0]
+
+    plotFFT(iq_frame, sample_rate, 0, 0)
+    fft_frame = np.fft.fft(iq_frame)
+
+    power = np.abs(fft_frame) ** 2
+
+    power = np.fft.fftshift(power)
+    power = np.asarray(power, dtype=float)
+    # plot_array(power)
+    power = np.maximum(power, 1e-12)
+    spectrum_db = 10.0 * np.log10(power)
+    smooth_db = gaussian_filter1d(spectrum_db, signal_smooth)
+    noise_db = gaussian_filter1d(spectrum_db, noise_smooth)
+    snr_db = smooth_db - noise_db
+    plot_array(snr_db)
+    above = snr_db > threshold_db
+    transitions = np.diff(above.astype(np.int8))
+    starts = np.where(transitions == 1)[0] + 1
+    ends = np.where(transitions == -1)[0] + 1
+    if above[0]:
+        starts = np.insert(starts, 0, 0)
+
+    if above[-1]:
+        ends = np.append(ends, len(above))
+
+    bin_width = sample_rate / len(fft_frame)
+
+    signals = []
+
+    for start, end in zip(starts, ends):
+
+        width = end - start
+
+        if width < min_width:
+            continue
+
+        # Find strongest bin in this signal.
+        peak_bin = start + np.argmax(snr_db[start:end])
+
+        # Convert FFT bin to frequency.
+        #
+        # Assumes fft_frame has been fftshift()'d.
+        freq = center_freq + (peak_bin - len(fft_frame) / 2) * bin_width
+
+        # Center of occupied region.
+        center_bin = (start + end - 1) / 2
+        signal_freq = (
+                center_freq
+                + (center_bin - len(fft_frame) / 2) * bin_width
+        )
+
+        bandwidth = width * bin_width
+
+        signals.append({
+            "center_freq": signal_freq,
+            "bandwidth": bandwidth,
+            "strength_db": snr_db[peak_bin],
+            "start_bin": start,
+            "end_bin": end - 1,
+            "peak_bin": peak_bin
+        })
+
+    for sig in signals:
+        print(sig)
+
+    # plot_array(above)
+    plt.show()
