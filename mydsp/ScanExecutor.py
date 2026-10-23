@@ -18,6 +18,10 @@ class ScanExecutor(threading.Thread):
 
 
         freqs =  self.scanner.freqs
+        if self.scanner.steps > 1:
+            delta =  (freqs[1]-freqs[0])/self.scanner.steps
+            sweep_freqs = np.arange(freqs[0], freqs[1], delta, dtype=float)
+            freqs = sweep_freqs
 
         self.running = True
 
@@ -26,13 +30,19 @@ class ScanExecutor(threading.Thread):
                 print(f"Listening  to {freq}")
                 active = True
                 self.scanner.src.sdr.center_freq = freq * 1e6
+                unit = ""
+                if self.scanner.meastype == "maxpwr":
+                    unit="dB"
+
                 while active:
                     self.param_setter(self.scanner.meter,self.scanner.meastype,0.0)
                     time.sleep(self.scanner.delay)
                     if self.running == False:
                         return
                     pwr = self.param_getter(self.scanner.meter, self.scanner.meastype)
-                    print(f"{self.scanner.meastype} = {pwr}")
+                    if self.scanner.meastype == "maxpwr":
+                        pwr = 10*np.log10(pwr)
+                    print(f"{self.scanner.meastype} = {pwr:0.1f} {unit}")
 
                     if  pwr < self.scanner.threshold:
                         active = False

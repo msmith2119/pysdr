@@ -20,12 +20,9 @@ class ParamWidget(tk.Frame):
 
         for param in params:
             cval = param.val
-            df = float(cval / N)
-            print(f"df={df}")
-            min = cval - (N / 2) * df
-            print("min = {min}")
-            max = cval + (N / 2) * df
-            print("max = {max}")
+            df = float((param.max-param.min) / N)
+
+
             resolution = df
 
             def value_changed(pname, value):
@@ -37,8 +34,8 @@ class ParamWidget(tk.Frame):
             SliderControl(
                 self,
                 param.name,
-                min,
-                max,
+                param.min,
+                param.max,
                 resolution,
                 param.val,
                 partial(value_changed, param.name),

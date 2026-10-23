@@ -2,7 +2,7 @@ import re
 import os
 from pathlib import Path
 
-from mydsp import SineWaveSource
+from mydsp import SineWaveSource, DevNullSink
 from mydsp.MorseCodeSource import MorseCodeSource
 
 from mydsp.OscillatorSource import OscillatorSource
@@ -11,7 +11,7 @@ from mydsp.RtlFileSource import RtlFileSource
 from mydsp.NoiseSource import NoiseSource, NoiseType
 from mydsp.SndCardSink import SndCardSink
 from mydsp.WavFileSink import WavFileSink
-from mydsp.Utils import is_writable
+from mydsp.Utils import is_writable, to_bool
 from utils.MyLogger import MyLogger
 from utils.MyLogger import LogLevel
 
@@ -19,6 +19,7 @@ all_sources = ["WavFile"]
 all_sinks = ["WavFile"]
 
 from mydsp.WavFileSource import WavFileSource
+from mydsp.DevNullSink import DevNullSink
 from .dsl_globals import get_context
 from mydsp.Utils import to_number
 
@@ -130,6 +131,8 @@ class IOCommands:
         elif stype == "SndCard":
             sink = self.gen_sndcard_sink(name,params)
 
+        elif stype == "DevNull":
+            sink = self.gen_devnull_sink(name)
         else:
             MyLogger.error(f"Invalid sink type {stype}")
             return 1
@@ -173,6 +176,7 @@ class IOCommands:
 
 
     def gen_source(self,name,source_type,param_str):
+
 
         class_name = source_type + "Source"
         source_class = globals().get(class_name)
@@ -356,8 +360,10 @@ class IOCommands:
                 print("frame_size parameter  not defined")
                 return 1
 
+        delay = params.get('delay', 0)
+        loop = to_bool(params.get('loop', "False"))
 
-        src = RtlFileSource(path,frame_size)
+        src = RtlFileSource(path,frame_size,delay,loop)
 
         self.sources[name] = src
         print(f"Source {name} created")
@@ -513,5 +519,10 @@ class IOCommands:
 
         sink = SndCardSink(sample_rate,num_channels,frame_size,isComplex,useQueue)
 
+        return sink
+
+    def gen_devnull_sink(self, name):
+
+        sink = DevNullSink(name)
         return sink
 

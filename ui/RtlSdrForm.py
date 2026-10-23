@@ -70,7 +70,7 @@ class RtlSdrForm(tk.Frame):
 if __name__ == "__main__":
 
     def frequency_changed(frequency):
-        print(f"Frequency: {frequency:.3f} MHz")
+        print(f"Frequency: {frequency:.4f} MHz")
 
     def gain_chained(gain):
         print(f"gain = {gain}")

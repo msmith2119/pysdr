@@ -99,3 +99,33 @@ class IIRFilter:
         plt.xlim([-self.fs / 2, self.fs / 2])  # Limiting x-axis to show
         #plt.ylim(ymin, ymax)
 
+    def plotCFFT(self,iq):
+
+        fs = self.fs
+        title = "IQ Power Spectral Density"
+        x = np.zeros(self.N)
+        x[0] = 1.0
+        iq = self.doFrame(x)
+        n = len(iq)
+
+        # Compute periodogram
+        spectrum = np.fft.fft(iq)
+        power = np.abs(spectrum) ** 2 / (n * self.fs)
+
+        # Shift zero frequency to the center
+        power = np.fft.fftshift(power)
+        freq = np.fft.fftshift(np.fft.fftfreq(n, d=1 / fs))
+
+        # Convert to dB, avoiding log(0)
+        power_db = 10 * np.log10(power + 1e-20)
+
+        plt.figure(figsize=(10, 4))
+        plt.plot(freq, power_db)
+        plt.xlabel("Frequency (Hz)")
+        plt.ylabel("PSD (dB/Hz)")
+        plt.title(title)
+        plt.grid(True)
+        plt.xlim(-fs / 2, fs / 2)
+        plt.tight_layout()
+        plt.show()
+

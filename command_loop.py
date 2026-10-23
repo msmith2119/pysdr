@@ -5,6 +5,9 @@ from functools import partial
 
 from jupyterlab.commands import enable_extension
 
+from mydsp.GraphExecutor import GraphExecutor
+from ui.SpectrumGraph import SpectrumGraph
+from ui.SpectrumGraphWidget import SpectrumGraphWidget
 from commands import dsl_globals
 from commands.dsl_globals import get_context
 from commands.filter_commands import FilterCommands
@@ -22,6 +25,7 @@ from mydsp.SincFilter import SincFilter
 from mydsp.SineWaveSource import SineWaveSource
 from mydsp.EQFilter import EQFilter
 from mydsp.RtlFileSource import RtlFileSource
+from mydsp.DevNullSink import DevNullSink
 from matplotlib import pyplot as plt
 from ui.EqBand import EqBand
 from mydsp.WavFileSource import WavFileSource
@@ -57,6 +61,8 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
         self.sources = {}
         self.sinks = {}
         self.pipeline_thread = None
+        self.graph_thread = None
+        self.scan_thread =  None
         #self.root = tk.Tk()
         #self.root.withdraw()
         self.commands = {
@@ -79,6 +85,7 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
             'list_sources':self.cmd_list_sources,
             'set_dev_param':self.cmd_set_dev_param,
             'widget':self.cmd_widget_param,
+            'showpan':self.cmd_showpan,
             'set_pipeline_param':self.cmd_set_pipeline_param,
             'get_profile':self.cmd_get_pipeline_profile,
             'pipelines':self.cmd_pipelines,
@@ -100,84 +107,100 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
 
 
 
-    def cmd_test(self,args):
+    def cmd_test1(self,args):
 
-        #src = self.sources["mywav"]
-        frames = []
         frame_size = 5000
-        fs = 48000.0
-        meter = MeterFilter("mymeter",fs,frame_size)
-        #src = NoiseSource("myn",0.1,frame_size,1,num_frames=30)
-        src = WavFileSource("mywav","audio/atc_noise.wav",frame_size)
-        while True:
+        fs = 1000000
+        src = RtlFileSource("rtl/f90_1M.dat",frame_size,0,False)
+        frames = []
+        for i in range(100):
             block = src.getFrame()
-            if block is None:
-                break
-            frames.append(block[:,0])
+            frame = block[:,0]
+            frames.append(frame)
+
+        frame = frames[10]
+        #plot_array(frame)
+        fft_frame = fft(frame)
+
+        #plotFFT(frame,fs,0,0)
+        power = (fft_frame * np.conj(fft_frame))/(float(frame_size))**2
+        power_db = 10 * np.log10(power + 1e-12)
+        #plot_array(power)
+        # Put zero frequency in the center
+        power_db = np.fft.fftshift(power_db)
+        freq = np.fft.fftshift(np.fft.fftfreq(frame_size, 1 / fs))
+        plot_array(power_db)
+        plt.show()
+    def cmd_test(self,args):
+        self.show_graph_widget("mymeter")
+
+    def cmd_showpan(self,args):
+        meter_name = args[0]
+        return self.show_graph_widget(meter_name)
+
+    def show_graph_widget(self,meter_name):
 
 
-        for frame in frames[1:2]:
-            #plotFFT(frame,fs,0,0)
-            #plt.show()
-            plot_array(frame)
-            plt.show()
-            fft_frame = fft(frame)
-            power = np.abs(fft_frame) ** 2
+        if self.pipeline_thread == None:
+            MyLogger.error("No pipeline running")
+            return 1
 
-            power = np.fft.fftshift(power)
-            power = np.asarray(power, dtype=float)
-            top = heapq.nlargest(5,power)
-            print(top)
-            plot_array(power)
-            plt.show()
-            spectrum_db = 10.0 * np.log10(power)
-            smooth_db = gaussian_filter1d(spectrum_db, 2)
-            noise_db = gaussian_filter1d(spectrum_db, 20)
-            snr_db = smooth_db - noise_db
-            plot_array(snr_db)
-            plt.show()
-            meter.doFrame(frame)
-            rms = meter.get_rms()
-            x = frame- np.mean(frame)
+        print(f"type of center_freq = {self.pipeline_thread.src.sdr.center_freq}")
+        center_freq = float(self.pipeline_thread.src.sdr.center_freq)
+        meter = self.filters.get(meter_name,None)
+        if meter is None:
+            MyLogger.error("MeterFilter {meter_name} not found")
+            return 1
 
-            #plot_array(x)
+        fs = meter.fs
+        frame_size = meter.frame_size
 
-            # Envelope
-            env = np.abs(x)
+        root = tk.Tk()
+        root.title("SpectrumGraphWidget")
+        root.geometry("900x500")
+        interval = 0.1
 
-            # Smooth envelope
-            #filt = LPFilter("mylp",src.sample_rate,1000.0,0.001,src.frame_size,1.0,False)
-            filt = SincFilter("mysinc",fs,src.frame_size,101,1000,0,"LOWPASS")
-            env = filt.doFrame(env)
-            #plot_array(env)
-            #plt.show()
-            # Autocorrelation
-            r = np.correlate(env, env, mode='full')
+        freq = np.fft.fftshift(
+            np.fft.fftfreq(frame_size, 1.0 / fs)
+        )
+        xverter =  get_context().vars.get("xverter",None)
 
-            mid = len(env) - 1
-            r /= r[mid]
-            #plot_array(r)
-            #plt.show()
-            # Ignore zero lag
-            h = int(0.75*len(r))
-            #score = np.max(r[mid + 1:mid + 200])
-            score = r[h]
-            print(f"rms = {rms}")
-            print(f"score={score}")
+        freq+=center_freq
+        freq/=1e+6
+        if xverter is not None:
+            freq-=float(xverter)
+        #freq-=xverter
+        def stopUpdate():
+            self.graph_thread.stop()
+        widget = SpectrumGraphWidget(root, freq,stopUpdate)
+        widget.pack(fill=tk.BOTH, expand=True)
+        self.firstTime = True
 
+        def updateGraph():
+            power = self.pipeline_thread.get_filter_param(meter_name,"power")
+
+            power_db = 10 * np.log10(power + 1e-12)
+            # Put zero frequency in the center
+            power_db = np.fft.fftshift(power_db)
+            if self.firstTime:
+                widget.plot(power_db)
+                self.firstTime = False
+
+            else:
+                widget.update(power_db)
 
 
 
+        self.graph_thread = GraphExecutor(interval,updateGraph)
+        self.graph_thread.start()
+        root.mainloop()
     def show_scan_widget(self,scanner):
 
 
-        def doscan(name,delay,threshold,str_freqs):
+        def doscan(name,delay,threshold,steps,str_freqs):
 
             freqs = [float(i)  for i in str_freqs]
-            print(name)
-            print(delay)
-            print(threshold)
-            print(freqs)
+
             if not is_float(delay):
                 MyLogger.error(f"Not a number for delay {delay}")
                 return
@@ -188,14 +211,15 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
             if scanner is None:
                 MyLogger.error("referenced scanner not defined {name}")
                 return
+
+
+
             scanner.delay = float(delay)
             if scanner.delay <= 0.0:
                 MyLogger.error(f"Non positive number found for delay {scanner.delay} ")
                 return
             scanner.threshold = float(threshold)
-            if scanner.threshold <= 0.0:
-                MyLogger.error(f"Non positive number found for threshold {scanner.threshold}")
-                return
+            scanner.steps = int(steps)
             if len(freqs) < 2:
                 MyLogger.error("Need two or more frequencies to scan")
                 return
@@ -211,7 +235,7 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
         print(scanner.freqs)
         root = tk.Tk()
         root.title(f"Scanner")
-        form = ScanForm(root,scanner.delay,scanner.threshold,scanner.freqs,partial(doscan,scanner.name),stopscan)
+        form = ScanForm(root,scanner.delay,scanner.threshold,scanner.steps,scanner.freqs,partial(doscan,scanner.name),stopscan)
         form.pack(padx=20, pady=20)
         root.mainloop()
 
@@ -226,6 +250,7 @@ class DSLContext(FilterCommands,IOCommands,PipelineCommands,WavCommands,UserComm
         filter = self.filters.get(name,None)
         src = self.sources.get(name,None)
         scanner = self.scanners.get(name,None)
+
         if filter is not None:
             if type(filter).__name__ == "EQFilter":
                 self.show_eq_widget(filter)

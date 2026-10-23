@@ -46,7 +46,7 @@ class PipelineExecutor(threading.Thread):
 
     def get_filter_param(self,fname,pname):
         value = None
-        print(f"get_filter_param fname={fname}, pname={pname}")
+
         for row in self.filter_banks:
             for filt in row:
                 if filt.name == fname:
@@ -68,13 +68,14 @@ class PipelineExecutor(threading.Thread):
                 if filt.name == fname:
                     return filt.profile_data
     def run(self):
-        print(f"self.channels = {self.channels}")
+
         self.running = True
         self.src.start()
         self.sink.start()
+        start = time.perf_counter()
         while self.running:
             block = self.src.getFrame()
-            start = start = time.perf_counter()
+
             if block is None:
                 break
             cols = []
@@ -95,8 +96,7 @@ class PipelineExecutor(threading.Thread):
 
 
             if len(cols) > 0 :
-                elapsed = time.perf_counter() - start
-                self.profile_data.append(elapsed)
+
 
                 f = np.column_stack(cols)
 
@@ -121,7 +121,8 @@ class PipelineExecutor(threading.Thread):
                     self.sink.writeFrame(np.column_stack(colvec))
 
 
-
+        elapsed = time.perf_counter() - start
+        print(f"Pipeline time : {elapsed}")
         self.src.close()
         self.sink.close()
 

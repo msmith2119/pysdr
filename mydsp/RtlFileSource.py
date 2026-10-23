@@ -1,3 +1,4 @@
+import time
 
 import numpy as np
 
@@ -26,18 +27,25 @@ class RtlFileSource:
         src.close()
     """
     description = "Source RtlFile <name> frame_size=<frame_size> path=<path>"
-    def __init__(self, filename, frame_size,loop=False):
+    def __init__(self, filename, frame_size,delay=0,loop=False):
         self.filename = filename
         self.frame_size = frame_size
         self.file = open(filename, "rb")
         self.num_channels = 1
+        self.delay = float(delay)/1000.0
         self.loop=loop
 
 
 
     def getFrame(self):
 
+        if self.delay > 0.0:
+            time.sleep(self.delay)
+
         raw = self.getRawFrame()
+        if raw is None and self.loop is True:
+            self.rewind()
+            raw = self.getRawFrame()
 
         if raw is None:
             return None
@@ -115,7 +123,7 @@ class RtlFileSource:
         return self.num_channels
 
     def summary(self):
-        return f"Rtl Source frame_size={self.frame_size}, loop={self.loop}"
+        return f"Rtl Source frame_size={self.frame_size}, delay={self.delay:.3f}, loop={self.loop}"
 
         """Return a summary of the IQ file."""
     def __enter__(self):

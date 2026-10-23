@@ -22,6 +22,7 @@ from mydsp.FreqShiftFilter import FreqShiftFilter
 from mydsp.FMStereoFilter import FMStereoFilter
 from mydsp.MeterFilter import MeterFilter
 from mydsp.SquelchFilter import SquelchFilter
+from mydsp.ToRealFilter import ToRealFilter
 from mydsp.Utils import to_number
 from utils.MyLogger import MyLogger, LogLevel
 from .dsl_globals import get_context

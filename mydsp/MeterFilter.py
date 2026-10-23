@@ -13,7 +13,9 @@ class MeterFilter:
         self.pwr = 0.0
         self.maxpwr = 0.0
         self.maxrms = 0.0
-
+        self.power = None
+        self.fft = None
+        self.n_squared =  float(frame_size)**2
     def doFrame(self,frame):
         if frame is None:
             return None
@@ -26,9 +28,10 @@ class MeterFilter:
             current_s2 = 0.9*self.ms
         self.ms = (self.ms + current_s2)/2.0
 
-        current_ps = fft(frame)
-        power = abs(current_ps**2)
-        top = heapq.nlargest(5, power)
+        self.fft = fft(frame)
+        self.power = (np.abs(self.fft) ** 2)/self.n_squared
+
+        top = heapq.nlargest(5, self.power)
         pavg = np.mean(top)
 
         if pavg > self.maxpwr:
@@ -38,12 +41,14 @@ class MeterFilter:
             pavg = 0.9*self.pwr
         self.pwr = (self.pwr + pavg) /2.0
 
-
-
         return frame
 
 
 
+    def get_fft(self):
+        return self.fft
+    def get_power(self):
+        return self.power
     def get_rms(self):
         return np.sqrt(self.ms)
 

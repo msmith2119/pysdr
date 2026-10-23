@@ -26,9 +26,9 @@ class FrequencyControl(tk.Frame):
 
         self.entries = []
 
-        # Six editable digits: xxx.xxx
+        # Six editable digits: xxx.xxxx
         digits = self._frequency_to_digits(frequency)
-
+        print(f"digits={digits}")
         for i in range(3):
             entry = self._create_digit_entry(digits[i])
             entry.grid(row=0, column=i, padx=1)
@@ -42,7 +42,7 @@ class FrequencyControl(tk.Frame):
         )
         decimal.grid(row=0, column=3)
 
-        for i in range(3, 6):
+        for i in range(3, 7):
             entry = self._create_digit_entry(digits[i])
             entry.grid(row=0, column=i + 1, padx=1)
             self.entries.append(entry)
@@ -178,12 +178,12 @@ class FrequencyControl(tk.Frame):
         """
 
         # Work in kHz to avoid floating-point display problems.
-        khz = int(round(frequency * 1000))
+        p1khz = int(round(frequency * 10000))
 
-        if khz < 0 or khz > 999999:
+        if p1khz < 0 or p1khz > 9999999:
             raise ValueError("Frequency must be between 0.000 and 999.999 MHz")
 
-        return f"{khz:06d}"
+        return f"{p1khz:07d}"
 
     def getFrequency(self):
         """
@@ -195,8 +195,8 @@ class FrequencyControl(tk.Frame):
             for entry in self.entries
         )
 
-        khz = int(digits)
-        return khz / 1000.0
+        p1khz = int(digits)
+        return p1khz / 10000.0
 
     def setFrequency(self, frequency):
         """
@@ -232,6 +232,6 @@ if __name__ == "__main__":
     )
 
     control.pack(padx=20, pady=20)
-
+    print(control.getFrequency())
     root.mainloop()
 

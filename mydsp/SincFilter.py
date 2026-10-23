@@ -9,7 +9,7 @@ from mydsp.Parameter import Parameter,ParameterType
 
 
 class SincFilter(IIRFilter):
-    description = "Sinc filter with parameters: f1=<freq1>, f2=<freq2>, frame_size=<window size> fs = <sampling rate>"
+    description = "Sinc filter with parameters: f1=<freq1>, f2=<freq2>, ntaps<taps>, ftype=(LOWPASS,BANDPASS,HIGHPASS,NOTCH), frame_size=<window size> fs = <sampling rate>"
 
     def __init__(self,name,fs,frame_size,ntaps,f1,f2,ftype):
         self.name = name
@@ -52,7 +52,7 @@ class SincFilter(IIRFilter):
         self.calc()
 
     def summary(self):
-        return f"Sinc Filter type = {self.ftype}, f1={self.f1} ,f2={self.f2} , N={self.frame_size}, fs={self.fs}"
+        return f"Sinc Filter type = {self.ftype}, f1={self.f1} ,f2={self.f2}, ntaps={self.ntaps} , N={self.frame_size}, fs={self.fs}"
 
     @classmethod
     def from_instance(cls, other):

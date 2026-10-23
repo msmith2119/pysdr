@@ -1,4 +1,5 @@
 from mydsp.ScanExecutor import ScanExecutor
+from mydsp.Utils import to_bool
 from .dsl_globals import get_context
 
 
@@ -51,7 +52,12 @@ class UserCommands:
             print("cmd_scan Error: freqs is not defined")
             return 1
 
-        scanner = Scanner(name,src,meter,meastype,threshold,delay,str_freqs)
+        steps = params.get('steps',None)
+        if steps is None:
+            steps = 0
+        else :
+            sweep = int(steps)
+        scanner = Scanner(name,src,meter,meastype,threshold,delay,str_freqs,steps)
         self.scanners[name] = scanner
         print(f"scanner {name} created")
         return 0
